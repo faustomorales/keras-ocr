@@ -1,0 +1,12 @@
+{
+    "python.linting.pylintArgs": [
+        "--rcfile=setup.cfg"
+    ],
+    "python.venvPath": "./",
+    "python.pythonPath": ".venv/bin/python",
+    "python.formatting.provider": "yapf",
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveTimeout": 15000
+}
