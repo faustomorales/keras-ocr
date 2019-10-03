@@ -3,7 +3,7 @@ IMAGE_NAME = $(PACKAGE_NAME)
 VOLUME_NAME = $(IMAGE_NAME)_venv
 DOCKER_ARGS = -v $(PWD):/usr/src -v $(VOLUME_NAME):/usr/src/.venv --rm
 IN_DOCKER = docker run $(DOCKER_ARGS) $(IMAGE_NAME) pipenv run
-NOTEBOOK_PORT = 5000
+NOTEBOOK_PORT ?= 5000
 JUPYTER_OPTIONS := --ip=0.0.0.0 --port $(NOTEBOOK_PORT) --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''
 
 .PHONY: build
@@ -21,7 +21,7 @@ bash:
 command-lab-server:
 	pipenv run jupyter lab $(JUPYTER_OPTIONS)
 lab-server:
-	docker run -it $(DOCKER_ARGS) -p $(NOTEBOOK_PORT):$(NOTEBOOK_PORT) $(IMAGE_NAME) make command-lab-server
+	docker run -it $(DOCKER_ARGS) -p $(NOTEBOOK_PORT):$(NOTEBOOK_PORT) $(IMAGE_NAME) make command-lab-server NOTEBOOK_PORT=$(NOTEBOOK_PORT)
 test:
 	$(IN_DOCKER) pytest $(TEST_SCOPE)
 lint_check:

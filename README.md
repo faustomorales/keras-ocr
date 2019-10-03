@@ -8,28 +8,39 @@ You must have the [Cairo library](https://cairographics.org/) installed to use t
 
 
 ```bash
+# To install from master
 pip install git+https://github.com/faustomorales/keras-ocr.git#egg=keras-ocr
+
+# To install from PyPi
+pip install keras-ocr
 ```
 
 ### Using
-The following trains a simple OCR and shows how the different components work.
 
 #### Using pretrained text detection model
 The package ships with an easy-to-use implementation of the CRAFT text detection model with the original weights.
 
 ```python
+import matplotlib.pyplot as plt
+
 import keras_ocr
 
 detector = keras_ocr.detection.Detector(pretrained=True)
-image = keras_ocr.tools.read('path/to/image.jpg')
+image = keras_ocr.tools.read('tests/test_image.jpg')
 
 # Boxes will be an Nx4x2 array of box quadrangles
 # where N is the number of detected text boxes.
 boxes = detector.detect(images=[image])[0]
+canvas = keras_ocr.detection.drawBoxes(image, boxes)
+plt.imshow(canvas)
 ```
 
+![example of labeled image](tests/test_image_labeled.jpg)
+
 #### Complete end-to-end training
-You may wish to train your own end-to-end OCR pipeline! Here's an example for how you might do it. Note that the image generator has many options not documented here (such as adding backgrounds and image augmentation). Check the documentation for the `keras_ocr.tools.get_image_generator` function for more details.
+You may wish to train your own end-to-end OCR pipeline. Here's an example for how you might do it. Note that the image generator has many options not documented here (such as adding backgrounds and image augmentation). Check the documentation for the `keras_ocr.tools.get_image_generator` function for more details.
+
+Please note that, right now, we use a very simple training mechanism for the text detector which seems to work but does not match the method used in the original implementation.
 
 ```python
 import string
@@ -42,6 +53,22 @@ alphabet = string.digits + \
            string.ascii_lowercase + \
            string.ascii_uppercase + \
            string.punctuation + ' '
+
+# Build the text detector (pretrained)
+detector = keras_ocr.detection.Detector(pretrained=True)
+detector.model.compile(
+    loss='mse',
+    optimizer='adam'
+)
+
+# Build the recognizer (randomly initialized)
+# and build the training model.
+recognizer = keras_ocr.Recognizer(
+    alphabet=alphabet,
+    width=128,
+    height=64
+)
+recognizer.create_training_model(max_string_length=16)
 
 # For each text sample, the text generator provides
 # a list of (category, string) tuples. The category
@@ -61,17 +88,15 @@ detection_text_generator = keras_ocr.get_text_generator(
     alphabet=alphabet
 )
 
-# We first need to build and train a text detector.
-detector = keras_ocr.detection.Detector(pretrained=True)
-detector.model.compile(
-    loss='mse',
-    optimizer='adam'
-)
-
-# The image generator generates (image, sentence)
-# tuples where image is a HxWx1 image (grayscale)
-# and sentence is a string using only letters
-# from the selected alphabet. You can replace
+# The image generator generates (image, sentence, lines)
+# tuples where image is a HxWx3 image, 
+# sentence is a string using only letters
+# from the selected alphabet, and lines is a list of
+# lines of text in the image where each line is a list of 
+# tuples of the form (x1, y1, x2, y2, x3, y3, y4, c). c
+# is the character in the line and (x1, y2), (x2, y2), (x3, y3),
+# (x4, y4) define the bounding coordinates in clockwise order
+# starting from the top left. You can replace
 # this with your own generator, just be sure to match
 # that function signature.
 detection_image_generator = keras_ocr.tools.get_image_generator(
@@ -91,6 +116,9 @@ detection_image_generator = keras_ocr.tools.get_image_generator(
         ]
     }
 )
+
+# From our image generator, create a training batch generator
+# and train the model.
 detection_batch_generator = detector.get_batch_generator(
     image_generator=detection_image_generator,
     batch_size=2,
@@ -102,17 +130,6 @@ detector.model.fit_generator(
   workers=0
 )
 detector.model.save_weights('v0_detector.h5')
-
-# Great, now we need a recogizer.
-recognizer = keras_ocr.Recognizer(
-    alphabet=alphabet,
-    width=128,
-    height=64
-)
-
-# Create a training model (requires you to set
-# a maximum string length).
-recognizer.create_training_model(max_string_length=16)
 
 # This next part is similar to before but now
 # we adjust the image generator to provide only
