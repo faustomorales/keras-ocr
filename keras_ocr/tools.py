@@ -158,6 +158,7 @@ def get_image_generator(
         font_slants: typing.Dict[str, typing.Union[int, typing.List[int]]] = None,
         font_size: typing.Union[int, typing.Tuple[int, int]] = 18,
         backgrounds: typing.List[typing.Tuple[str, typing.Tuple[int, int, int]]] = None,
+        margin: int = 0,
         rotation: typing.Union[int, typing.Tuple[int, int]] = 0,
         single_line=False,
         line_spacing=1,
@@ -184,6 +185,7 @@ def get_image_generator(
             the two values.
         backgrounds: A list of tuples of the form (path to
             background file or image as array, text color)
+        margin: Minimum margin to apply around the image.
         background_crop_mode: One of letterbox or crop, indicates
             how backgrounds will be resized to fit on the canvas.
         rotation: The text rotation to use. Alternative, supply a tuple
@@ -268,8 +270,8 @@ def get_image_generator(
             x2, y2 = context_to_canvas(x_ctx + x_advance, y_ctx - text_height)
             x3, y3 = context_to_canvas(x_ctx + x_advance, y_ctx)
             x4, y4 = context_to_canvas(x_ctx, y_ctx)
-            inside = not (min(x1, x2, x3, x4) < 0 or max(x1, x2, x3, x4) > width
-                          or min(y1, y2, y3, y4) < 0 or max(y1, y2, y3, y4) > height)
+            inside = not (min(x1, x2, x3, x4) < margin or max(x1, x2, x3, x4) > width - margin
+                          or min(y1, y2, y3, y4) < margin or max(y1, y2, y3, y4) > height - margin)
             return x1, y1, x2, y2, x3, y3, x4, y4, inside
 
         # Lines contain characters
