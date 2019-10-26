@@ -63,7 +63,7 @@ detector.model.compile(
 
 # Build the recognizer (randomly initialized)
 # and build the training model.
-recognizer = keras_ocr.Recognizer(
+recognizer = keras_ocr.recognition.Recognizer(
     alphabet=alphabet,
     width=128,
     height=64
