@@ -52,13 +52,11 @@ def decode(predictions, alphabet):
 def CTCDecoder(rnn_steps_to_discard=2):  # pylint: disable=invalid-name
     def decoder(y_pred):
         y_pred = y_pred[:, rnn_steps_to_discard:, :]
-        input_length = keras.backend.ones(shape=(keras.backend.shape(y_pred)[0],
-                                                 1)) * keras.backend.cast(
-                                                     keras.backend.shape(y_pred)[1], 'float32')
-        # y_pred = keras.backend.permute_dimensions(y_pred, pattern=(1, 0, 2))
-        return keras.backend.ctc_decode(y_pred, input_length[:, 0], greedy=True)[0]
+        sequence_length = keras.backend.cast(keras.backend.shape(y_pred)[1], 'float32')
+        input_length = keras.backend.ones_like(y_pred[:, 0, 0]) * (sequence_length - rnn_steps_to_discard)
+        return keras.backend.ctc_decode(y_pred, input_length, greedy=True)[0]
 
-    return keras.layers.Lambda(decoder)
+    return keras.layers.Lambda(decoder, name='decode')
 
 
 def build_model(alphabet_length,
@@ -102,24 +100,26 @@ def build_model(alphabet_length,
         RNN = keras.layers.LSTM
     elif rnn_type == 'gru':
         RNN = keras.layers.GRU
-    gru_1 = RNN(rnn_size, return_sequences=True, kernel_initializer=kernel_initializer,
+    else:
+        raise NotImplementedError
+    rnn_1 = RNN(rnn_size, return_sequences=True, kernel_initializer=kernel_initializer,
                 name='gru1')(x)
-    gru_1b = RNN(rnn_size,
+    rnn_1b = RNN(rnn_size,
                  return_sequences=True,
                  go_backwards=True,
                  kernel_initializer=kernel_initializer,
                  name='gru1_b')(x)
-    gru1_merged = keras.layers.Add()([gru_1, gru_1b])
-    gru_2 = RNN(rnn_size, return_sequences=True, kernel_initializer=kernel_initializer,
-                name='gru2')(gru1_merged)
-    gru_2b = RNN(rnn_size,
+    rnn1_merged = keras.layers.Add()([rnn_1, rnn_1b])
+    rnn_2 = RNN(rnn_size, return_sequences=True, kernel_initializer=kernel_initializer,
+                name='gru2')(rnn1_merged)
+    rnn_2b = RNN(rnn_size,
                  return_sequences=True,
                  go_backwards=True,
                  kernel_initializer=kernel_initializer,
-                 name='gru2_b')(gru1_merged)
+                 name='gru2_b')(rnn1_merged)
 
     # Transforms RNN output to character activations.
-    x = keras.layers.Concatenate()([gru_2, gru_2b])
+    x = keras.layers.Concatenate()([rnn_2, rnn_2b])
     x = keras.layers.Dense(alphabet_length + 1,
                            kernel_initializer=kernel_initializer,
                            name='dense2')(x)
@@ -129,7 +129,7 @@ def build_model(alphabet_length,
 
 def build_prediction_model(model, rnn_steps_to_discard=2):
     return keras.models.Model(inputs=model.inputs,
-                              outputs=CTCDecoder(rnn_steps_to_discard)(model.outputs[0]))
+                              outputs=CTCDecoder(rnn_steps_to_discard=rnn_steps_to_discard)(model.outputs[0]))
 
 
 def build_training_model(model, max_string_length=8, rnn_steps_to_discard=2):
@@ -259,8 +259,9 @@ class Recognizer:
                 images = [image for image, _, _ in batch]
             images = np.array([image.astype('float32') for image in images])
             images = keras_applications.imagenet_utils.preprocess_input(
-                images, mode=self.preprocessing_mode, data_format='channels_last')
+                images, mode=self.preprocessing_mode, data_format='channels_last', backend=keras.backend)
             sentences = [sentence for _, sentence, _ in batch]
+            assert all(c in self.alphabet for c in ''.join(sentences)), 'Found illegal characters in sentence.'
             assert all(len(sentence) <= max_string_length for sentence in sentences)
             labels = np.array([[self.alphabet.index(c) for c in sentence] + [blank_label] *
                                (max_string_length - len(sentence)) for sentence in sentences])
