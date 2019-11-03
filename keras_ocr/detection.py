@@ -25,6 +25,8 @@ import os
 
 import cv2
 import keras
+import keras.layers
+import keras.backend
 import numpy as np
 import tensorflow as tf
 
