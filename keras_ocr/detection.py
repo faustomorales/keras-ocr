@@ -24,11 +24,9 @@ import os
 # THE SOFTWARE.
 
 import cv2
-import keras
-import keras.layers
-import keras.backend
 import numpy as np
 import tensorflow as tf
+from tensorflow import keras
 
 from . import tools
 

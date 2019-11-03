@@ -1,8 +1,6 @@
 import typing
 # pylint: disable=invalid-name,too-many-locals,too-many-arguments
-import keras
-import keras.layers
-import keras.backend
+from tensorflow import keras
 import keras_applications
 import numpy as np
 import cv2
