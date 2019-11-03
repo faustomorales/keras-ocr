@@ -3,7 +3,7 @@
         "--rcfile=setup.cfg"
     ],
     "python.venvPath": "./",
-    "python.pythonPath": ".venv/bin/python",
+    "python.pythonPath": ".venv/bin/python3.7",
     "python.formatting.provider": "yapf",
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,

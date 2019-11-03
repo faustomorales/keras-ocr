@@ -8,6 +8,13 @@ import cv2
 from . import tools
 
 
+def swish(x, beta=1):
+    return x * keras.backend.sigmoid(beta * x)
+
+
+keras.utils.get_custom_objects().update({'swish': keras.layers.Activation(swish)})
+
+
 def make_ctc_loss(rnn_steps_to_discard=2):
     """Make a CTC loss function for the recognizer.
 
@@ -22,10 +29,9 @@ def make_ctc_loss(rnn_steps_to_discard=2):
             keras.backend.greater(y_true, keras.backend.constant(-1)), 'float32'),
                                          axis=1,
                                          keepdims=True)
-        input_length = keras.backend.ones(shape=(keras.backend.shape(y_pred)[0],
-                                                 1)) * keras.backend.cast(
-                                                     keras.backend.shape(y_pred)[1], 'float32')
-
+        input_length = keras.backend.ones_like(y_pred[:, 0:1, 0],
+                                               name='ctc_ones') * keras.backend.cast(
+                                                   keras.backend.shape(y_pred)[1], 'float32')
         return keras.backend.ctc_batch_cost(y_true=y_true,
                                             y_pred=y_pred,
                                             input_length=input_length,
@@ -53,7 +59,8 @@ def CTCDecoder(rnn_steps_to_discard=2):  # pylint: disable=invalid-name
     def decoder(y_pred):
         y_pred = y_pred[:, rnn_steps_to_discard:, :]
         sequence_length = keras.backend.cast(keras.backend.shape(y_pred)[1], 'float32')
-        input_length = keras.backend.ones_like(y_pred[:, 0, 0]) * (sequence_length - rnn_steps_to_discard)
+        input_length = keras.backend.ones_like(
+            y_pred[:, 0, 0]) * (sequence_length - rnn_steps_to_discard)
         return keras.backend.ctc_decode(y_pred, input_length, greedy=True)[0]
 
     return keras.layers.Lambda(decoder, name='decode')
@@ -66,12 +73,20 @@ def build_model(alphabet_length,
                 filters=16,
                 kernel_size=(3, 3),
                 time_dense_size=32,
+                dropout=0,
                 rnn_size=512,
                 color=False,
                 rnn_type='lstm',
+                rnn_activation='tanh',
+                rnn_recurrent_activation='hard_sigmoid',
+                pool_type='max',
                 kernel_initializer='he_normal',
                 activation='relu'):
     input_layer = keras.layers.Input(shape=(height, width, 1 if not color else 3), dtype='float32')
+    if pool_type == 'max':
+        Pool = keras.layers.MaxPooling2D
+    elif pool_type == 'avg':
+        Pool = keras.layers.AveragePooling2D
     x = keras.layers.Permute((2, 1, 3))(input_layer)
     x = keras.layers.Conv2D(filters=filters,
                             kernel_size=kernel_size,
@@ -79,14 +94,16 @@ def build_model(alphabet_length,
                             activation=activation,
                             kernel_initializer=kernel_initializer,
                             name='conv1')(x)
-    x = keras.layers.MaxPooling2D(pool_size=(pool_size, pool_size), name='max1')(x)
+    if pool_size != 1:
+        x = Pool(pool_size=(pool_size, pool_size), name='max1')(x)
     x = keras.layers.Conv2D(filters=filters,
                             kernel_size=kernel_size,
                             padding='same',
                             activation=activation,
                             kernel_initializer=kernel_initializer,
                             name='conv2')(x)
-    x = keras.layers.MaxPooling2D(pool_size=(pool_size, pool_size), name='max2')(x)
+    if pool_size != 1:
+        x = Pool(pool_size=(pool_size, pool_size), name='max2')(x)
     x = keras.layers.Reshape(target_shape=(width // (pool_size**2),
                                            (height // (pool_size**2)) * filters),
                              name='reshape')(x)
@@ -102,24 +119,22 @@ def build_model(alphabet_length,
         RNN = keras.layers.GRU
     else:
         raise NotImplementedError
-    rnn_1 = RNN(rnn_size, return_sequences=True, kernel_initializer=kernel_initializer,
-                name='gru1')(x)
-    rnn_1b = RNN(rnn_size,
-                 return_sequences=True,
-                 go_backwards=True,
-                 kernel_initializer=kernel_initializer,
-                 name='gru1_b')(x)
+    rnn_kwargs = {
+        'kernel_initializer': kernel_initializer,
+        'return_sequences': True,
+        'activation': rnn_activation,
+        'recurrent_activation': rnn_recurrent_activation
+    }
+    rnn_1 = RNN(rnn_size, name='rnn1', **rnn_kwargs)(x)
+    rnn_1b = RNN(rnn_size, go_backwards=True, name='rnn1_b', **rnn_kwargs)(x)
     rnn1_merged = keras.layers.Add()([rnn_1, rnn_1b])
-    rnn_2 = RNN(rnn_size, return_sequences=True, kernel_initializer=kernel_initializer,
-                name='gru2')(rnn1_merged)
-    rnn_2b = RNN(rnn_size,
-                 return_sequences=True,
-                 go_backwards=True,
-                 kernel_initializer=kernel_initializer,
-                 name='gru2_b')(rnn1_merged)
+    rnn_2 = RNN(rnn_size, name='rnn2', **rnn_kwargs)(rnn1_merged)
+    rnn_2b = RNN(rnn_size, go_backwards=True, name='rnn2_b', **rnn_kwargs)(rnn1_merged)
 
     # Transforms RNN output to character activations.
     x = keras.layers.Concatenate()([rnn_2, rnn_2b])
+    if dropout != 0:
+        x = keras.layers.Dropout(dropout)(x)
     x = keras.layers.Dense(alphabet_length + 1,
                            kernel_initializer=kernel_initializer,
                            name='dense2')(x)
@@ -129,15 +144,16 @@ def build_model(alphabet_length,
 
 def build_prediction_model(model, rnn_steps_to_discard=2):
     return keras.models.Model(inputs=model.inputs,
-                              outputs=CTCDecoder(rnn_steps_to_discard=rnn_steps_to_discard)(model.outputs[0]))
+                              outputs=CTCDecoder(rnn_steps_to_discard=rnn_steps_to_discard)(
+                                  model.outputs[0]))
 
 
 def build_training_model(model, max_string_length=8, rnn_steps_to_discard=2):
     labels = keras.layers.Input(name='labels', shape=[max_string_length], dtype='float32')
     loss = keras.layers.Lambda(make_ctc_loss(rnn_steps_to_discard=rnn_steps_to_discard),
                                output_shape=(1, ),
-                               name='ctc')([model.outputs[0], labels])
-    training_model = keras.models.Model(inputs=[model.inputs[0], labels], outputs=loss)
+                               name='ctc')([model.output, labels])
+    training_model = keras.models.Model(inputs=[model.input, labels], outputs=loss)
     training_model.compile(loss=lambda _, y_pred: y_pred, optimizer=keras.optimizers.RMSprop())
     return training_model
 
@@ -154,14 +170,18 @@ class Recognizer:
         width: The width of the input images
         height: The height of the input images
         pool_size: The amount of pooling to be used after convolutional layers
+        pool_type: The type of pooling to apply (max or avg)
         filters: The number of convolutional filters.
         kernel_size: The size of the convolutional filters
+        dropout: The amount of dropout to apply
         rnn_size: The numer of recurrent units
         rnn_type: The type of RNN to use ('gru' or 'lstm')
         kernel_initializer: The Keras kernel initializer to use
         activation: The activation function.
         rnn_steps_to_discard: The number of RNN predictions to discard (the
             first few are usually not useful). This is used in both training and inference.
+        rnn_activation: The activation to use for recurrent layers
+        rnn_recurrent_activation: The activation to use for the recurrent step for recurrent layers.
         preprocessing_mode: The preprocessing mode to use with
             keras_applications.imagenet_utils.preprocess_input
     """
@@ -171,12 +191,16 @@ class Recognizer:
                  height=64,
                  pool_size=2,
                  filters=16,
+                 dropout=0,
                  kernel_size=(3, 3),
                  time_dense_size=32,
                  rnn_size=512,
                  rnn_type='lstm',
                  kernel_initializer='he_normal',
                  activation='relu',
+                 rnn_activation='tanh',
+                 rnn_recurrent_activation='hard_sigmoid',
+                 pool_type='max',
                  rnn_steps_to_discard=2,
                  preprocessing_mode='tf',
                  color=False):
@@ -188,7 +212,11 @@ class Recognizer:
                                  width=width,
                                  height=height,
                                  pool_size=pool_size,
+                                 pool_type=pool_type,
+                                 rnn_activation=rnn_activation,
+                                 rnn_recurrent_activation=rnn_recurrent_activation,
                                  filters=filters,
+                                 dropout=dropout,
                                  kernel_size=kernel_size,
                                  color=color,
                                  time_dense_size=time_dense_size,
@@ -259,9 +287,13 @@ class Recognizer:
                 images = [image for image, _, _ in batch]
             images = np.array([image.astype('float32') for image in images])
             images = keras_applications.imagenet_utils.preprocess_input(
-                images, mode=self.preprocessing_mode, data_format='channels_last', backend=keras.backend)
+                images,
+                mode=self.preprocessing_mode,
+                data_format='channels_last',
+                backend=keras.backend)
             sentences = [sentence for _, sentence, _ in batch]
-            assert all(c in self.alphabet for c in ''.join(sentences)), 'Found illegal characters in sentence.'
+            assert all(c in self.alphabet
+                       for c in ''.join(sentences)), 'Found illegal characters in sentence.'
             assert all(len(sentence) <= max_string_length for sentence in sentences)
             labels = np.array([[self.alphabet.index(c) for c in sentence] + [blank_label] *
                                (max_string_length - len(sentence)) for sentence in sentences])
