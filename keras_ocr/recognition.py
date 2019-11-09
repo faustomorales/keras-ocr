@@ -255,7 +255,7 @@ def build_model(alphabet,
                                    name='lstm_11_back')(rnn_1_add)
     x = keras.layers.Concatenate()([rnn_2_forward, rnn_2_back])
     x = keras.layers.Dropout(dropout, name='dropout')(x)
-    x = keras.layers.Dense(len(alphabet) + 1,
+    x = keras.layers.Dense(len(alphabet),
                            kernel_initializer='he_normal',
                            activation='softmax',
                            name='fc_12')(x)
