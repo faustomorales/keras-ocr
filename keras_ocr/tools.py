@@ -1,16 +1,20 @@
-# pylint: disable=invalid-name,too-many-locals,too-many-arguments
+# pylint: disable=invalid-name,too-many-locals,too-many-arguments,too-many-branches,too-many-statements,stop-iteration-return
 import os
 import typing
 import hashlib
 import urllib.request
+import urllib.parse
 
 import cv2
-import cairocffi
+try:
+    import cairocffi
+except ImportError:
+    cairocffi = None
 import numpy as np
 import essential_generators
 
 
-def read(filepath):
+def read(filepath_or_image: typing.Union[str, np.ndarray]):
     """Read an image from disk.
 
     Args:
@@ -19,9 +23,11 @@ def read(filepath):
     Returns:
         The new image
     """
-    image = cv2.imread(filepath)
+    if not isinstance(filepath_or_image, str):
+        return filepath_or_image
+    image = cv2.imread(filepath_or_image)
     if image is None:
-        raise Exception(f'Could not read {filepath}.')
+        raise Exception(f'Could not read {filepath_or_image}.')
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return image
 
@@ -191,6 +197,7 @@ def get_image_generator(
         augmenter1: An image augmenter to be applied to backgrounds
         augmenter2: An image augmenter to be applied to images after text overlay
     """
+    assert cairocffi is not None, 'You must install cairocffi to use the generator.'
     for elements in text_generator:
         surface = cairocffi.ImageSurface(cairocffi.FORMAT_ARGB32, width, height)
         current_font_size = np.random.randint(low=font_size[0], high=font_size[1]) if isinstance(
@@ -344,10 +351,13 @@ def sha256sum(filename):
     return h.hexdigest()
 
 
-def download_and_verify(url, filepath, sha256=None):
+def download_and_verify(url, sha256=None):
+    filename = os.path.basename(urllib.parse.urlparse(url).path)
+    filepath = os.path.expanduser(os.path.join('~', '.keras-ocr', filename))
     os.makedirs(os.path.split(filepath)[0], exist_ok=True)
     print('Looking for ' + filepath)
     if not os.path.isfile(filepath) or (sha256 and sha256sum(filepath) != sha256):
         print('Downloading ' + filepath)
         urllib.request.urlretrieve(url, filepath)
     assert sha256 == sha256sum(filepath), 'Error occurred verifying sha256.'
+    return filepath
