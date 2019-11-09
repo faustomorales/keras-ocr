@@ -65,10 +65,7 @@ def fit(image, width: int, height: int, cval: int = 255, mode='letterbox'):
         resize_width, resize_height = map(int, [resize_width, resize_height])
         fitted = np.zeros((height, width, 3), dtype='uint8') + cval
         image = cv2.resize(image, dsize=(resize_width, resize_height))
-        marginX = (fitted.shape[1] - image.shape[1]) // 2
-        marginY = (fitted.shape[0] - image.shape[0]) // 2
-        fitted[marginY:marginY + image.shape[0], marginX:marginX +
-               image.shape[1]] = image[:height, :width]
+        fitted[:image.shape[0], :image.shape[1]] = image[:height, :width]
     elif mode == 'crop':
         if width / image.shape[1] >= height / image.shape[0]:
             resize_width = width
