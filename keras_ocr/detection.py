@@ -237,6 +237,8 @@ def getBoxes(y_pred,
 class UpsampleLike(keras.layers.Layer):
     """ Keras layer for upsampling a Tensor to be the same shape as another Tensor.
     """
+
+    # pylint:disable=unused-argument
     def call(self, inputs, **kwargs):
         source, target = inputs
         target_shape = keras.backend.shape(target)
