@@ -16,6 +16,7 @@ pylint = "==2.3.0"
 torch = "*"
 torchvision = "*"
 pytest = "*"
+scikit-learn = "*"
 
 [packages]
 keras-ocr = {editable = true,path = "."}
