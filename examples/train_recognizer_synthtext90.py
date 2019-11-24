@@ -34,7 +34,7 @@ def get_filepaths(data_path, split):
 def download_extract_and_process_dataset(data_path):
     archive_filepath = os.path.join(data_path, 'mjsynth.tar.gz')
     extraction_directory = os.path.join(data_path, 'mnt')
-    if not os.path.isfile(archive_filepath):
+    if not os.path.isfile(archive_filepath) and not os.path.isdir(extraction_directory):
         print('Downloading the dataset.')
         urllib.request.urlretrieve("https://www.robots.ox.ac.uk/~vgg/data/text/mjsynth.tar.gz",
                                    archive_filepath)
