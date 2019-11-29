@@ -518,7 +518,16 @@ def font_supports_alphabet(filepath, alphabet):
         alphabet: A string of characters to check for.
     """
     font = fontTools.ttLib.TTFont(filepath)
-    return all(any(ord(c) in table.cmap.keys() for table in font['cmap'].tables) for c in alphabet)
+    if not all(any(ord(c) in table.cmap.keys() for table in font['cmap'].tables) for c in alphabet):
+        return False
+    font = PIL.ImageFont.truetype(filepath)
+    try:
+        for character in alphabet:
+            font.getsize(character)
+    # pylint: disable=bare-except
+    except:
+        return False
+    return True
 
 
 def download_and_verify(url, sha256=None, cache_dir=None, verbose=True):
