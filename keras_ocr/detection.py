@@ -104,7 +104,7 @@ def compute_maps(heatmap, image_height, image_width, lines):
 
     for line in lines:
         previous_link_points = None
-        for x1, y1, x2, y2, x3, y3, x4, y4, c in line:
+        for [(x1, y1), (x2, y2), (x3, y3), (x4, y4)], c in line:
             if c == ' ':
                 previous_link_points = None
                 continue
