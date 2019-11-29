@@ -1,0 +1,16 @@
+version: 2.1
+
+executors:
+  executor:
+    machine:
+        image: ubuntu-1604:201903-01
+
+jobs:
+  build:
+      executor: executor
+      steps:
+        - checkout
+        - run:
+            name: Run precommit check
+            command: make precommit
+          

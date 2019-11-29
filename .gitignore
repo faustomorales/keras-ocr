@@ -3,6 +3,7 @@ notebooks
 .DS_Store
 keras_ocr.egg-info
 build
+_build
 dist
 __pycache__
 versioneer.pyc

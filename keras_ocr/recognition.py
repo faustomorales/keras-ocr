@@ -236,6 +236,7 @@ def build_model(alphabet,
                                    return_sequences=True,
                                    name='lstm_11_back')(rnn_1_add)
     x = keras.layers.Concatenate()([rnn_2_forward, rnn_2_back])
+    backbone = keras.models.Model(inputs=inputs, outputs=x)
     x = keras.layers.Dropout(dropout, name='dropout')(x)
     x = keras.layers.Dense(len(alphabet) + 1,
                            kernel_initializer='he_normal',
@@ -254,7 +255,7 @@ def build_model(alphabet,
     training_model = keras.models.Model(inputs=[model.input, labels, input_length, label_length],
                                         outputs=loss)
     training_model.compile(loss=lambda _, y_pred: y_pred, optimizer=optimizer)
-    return model, training_model, prediction_model
+    return backbone, model, training_model, prediction_model
 
 
 class Recognizer:
@@ -269,14 +270,16 @@ class Recognizer:
                  optimizer=None,
                  stn=True,
                  rnn_steps_to_discard=2,
-                 pretrained=True):
+                 pretrained='top'):
         if filters is None:
             filters = [64, 128, 256, 256, 512, 512, 512]
+        assert len(filters) == 7, '7 CNN filters must be provided.'
         if rnn_units is None:
             rnn_units = [128, 128]
+        assert len(rnn_units) == 2, '2 RNN filters must be provided.'
         self.alphabet = alphabet
         self.blank_label_idx = len(alphabet)
-        self.model, self.training_model, self.prediction_model = build_model(
+        self.backbone, self.model, self.training_model, self.prediction_model = build_model(
             alphabet=alphabet,
             height=height,
             width=width,
@@ -287,14 +290,23 @@ class Recognizer:
             filters=filters,
             rnn_units=rnn_units,
             dropout=dropout)
-        if pretrained:
+        if pretrained == 'top':
             pretrained_key = (alphabet, tuple(filters), tuple(rnn_units), color, stn)
             assert pretrained_key in PRETRAINED_WEIGHTS, (
                 'No pretrained weights available for this configuration. '
                 'Please set pretrained=False.')
+            pretrained_target = self.model
+        elif pretrained == 'backbone':
+            pretrained_key = (tuple(filters), tuple(rnn_units), color, stn)
+            pretrained_target = self.backbone
+        if pretrained:
+            assert pretrained_key in PRETRAINED_WEIGHTS, (
+                'No pretrained weights available for this configuration. '
+                'Please set pretrained=False.')
             pretrained_config = PRETRAINED_WEIGHTS[pretrained_key]
-            pretrained_weights = tools.download_and_verify(**pretrained_config)
-            self.model.load_weights(pretrained_weights)
+            pretrained_target.load_weights(
+                tools.download_and_verify(url=pretrained_config['url'],
+                                          sha256=pretrained_config['sha256']))
 
     def get_batch_generator(self, image_generator, batch_size=8):
         """
@@ -305,23 +317,6 @@ class Recognizer:
                 be in color even if the OCR is setup to handle grayscale as they
                 will be converted here.
             batch_size: How many images to generate at a time.
-
-        ```python
-            text_generator = recognizer.get_text_generator(max_string_length=8)
-            image_generator = recognizer.get_image_generator(
-                font_groups={
-                    'characters': [
-                        'Century Schoolbook',
-                        'Courier', 'STIX',
-                        'URW Chancery L',
-                        'FreeMono'
-                    ]
-                },
-                text_generator=text_generator,
-                font_size=18
-            )
-            recognizer.get_training_generator(image_generator=image_generator)
-        ```
         """
         y = np.zeros((batch_size, 1))
         if self.training_model is None:
@@ -351,6 +346,11 @@ class Recognizer:
             yield (images, labels, input_length, label_length), y
 
     def recognize(self, image):
+        """Recognize text from a single image.
+
+        Args:
+            image: A pre-cropped image containing characters
+        """
         image = tools.read_and_fit(filepath_or_array=image,
                                    width=self.prediction_model.input_shape[2],
                                    height=self.prediction_model.input_shape[1],
@@ -363,8 +363,17 @@ class Recognizer:
             if idx not in [self.blank_label_idx, -1]
         ])
 
-    def recognize_from_boxes(self, image, boxes,
+    def recognize_from_boxes(self,
+                             image,
+                             boxes,
                              batch_size=5) -> typing.List[typing.Tuple[str, np.ndarray]]:
+        """Recognize text from an image using a set of bounding boxes.
+
+        Args:
+            image: A pre-cropped image containing characters
+            boxes: A list of boxes provided as four coordinates
+            batch_size: The prediction batch size
+        """
         crops = []
         image = tools.read(image)
         for box in boxes:

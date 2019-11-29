@@ -1,10 +1,18 @@
 # pylint: disable=no-member
+import os
+
 import numpy as np
+import pytest
 import torch
 
 import keras_ocr
 
 
+@pytest.mark.skipif(not os.path.isfile(
+    os.path.expanduser(
+        os.path.join('~', '.keras-ocr',
+                     'https://storage.googleapis.com/keras-ocr/craft_mlt_25k.pth'))),
+                    reason="CRAFT weights required.")
 def test_pytorch_identical_output():
     weights_path_torch = keras_ocr.tools.download_and_verify(
         url='https://storage.googleapis.com/keras-ocr/craft_mlt_25k.pth',

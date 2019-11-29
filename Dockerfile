@@ -7,5 +7,6 @@ COPY ./Pipfile* ./
 COPY ./Makefile ./
 COPY ./setup* ./
 COPY ./versioneer* ./
+COPY ./docs/requirements.txt ./docs/requirements.txt
 RUN pip install pipenv && make init
 ENV LC_ALL C

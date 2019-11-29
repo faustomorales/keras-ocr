@@ -1,0 +1,16 @@
+version: 2
+
+# Build documentation in the docs/ directory with Sphinx
+sphinx:
+  configuration: docs/conf.py
+
+formats: all
+
+# Installs the package and the docs requirements.
+python:
+   version: 3.7
+   install:
+      - requirements: docs/requirements.txt
+      - method: pip
+        path: .
+   system_packages: true

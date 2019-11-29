@@ -1,4 +1,4 @@
-# pylint: disable=invalid-name,too-many-locals,no-else-raise,no-self-use,too-many-statements,stop-iteration-return
+# pylint: disable=invalid-name,too-many-locals,no-else-raise,no-self-use,too-many-statements,stop-iteration-return,import-outside-toplevel
 import typing
 
 # The PyTorch portions of this code are subject to the following copyright notice.

@@ -1,0 +1,7 @@
+sphinx-autodoc-typehints==1.10.3
+sphinx-autobuild==0.7.1
+sphinx==2.2.1
+sphinx_rtd_theme==0.4.3
+m2r==0.2.1
+opencv-contrib-python-headless
+tqdm

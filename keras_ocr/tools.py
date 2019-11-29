@@ -306,8 +306,7 @@ def draw_text_image(text_groups,
                     lines.append([])
                     x = start_x
                     continue
-                else:
-                    x += fontsize
+                x += fontsize
             if out_of_space:
                 break
             draw.text(xy=(x, y), text=character, fill=color + (255, ), font=font)
