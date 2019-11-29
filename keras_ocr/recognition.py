@@ -288,9 +288,13 @@ class Recognizer:
             rnn_units=rnn_units,
             dropout=dropout)
         if pretrained:
-            self.model.load_weights(
-                tools.download_and_verify(**PRETRAINED_WEIGHTS[(alphabet, tuple(filters),
-                                                                tuple(rnn_units), color, stn)]))
+            pretrained_key = (alphabet, tuple(filters), tuple(rnn_units), color, stn)
+            assert pretrained_key in PRETRAINED_WEIGHTS, (
+                'No pretrained weights available for this configuration. '
+                'Please set pretrained=False.')
+            pretrained_config = PRETRAINED_WEIGHTS[pretrained_key]
+            pretrained_weights = tools.download_and_verify(**pretrained_config)
+            self.model.load_weights(pretrained_weights)
 
     def get_batch_generator(self, image_generator, batch_size=8):
         """
