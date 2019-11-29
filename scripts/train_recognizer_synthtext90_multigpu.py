@@ -1,3 +1,5 @@
+"""This script demonstrates how to train the model
+on the SynthText90 using multiple GPUs."""
 # pylint: disable=invalid-name
 import datetime
 import argparse
@@ -21,6 +23,7 @@ import keras_ocr
 
 # pylint: disable=redefined-outer-name
 def get_filepaths(data_path, split):
+    """Get the list of filepaths for a given split (train, val, or test)."""
     with open(os.path.join(data_path, f'mnt/ramdisk/max/90kDICT32px/annotation_{split}.txt'),
               'r') as text_file:
         filepaths = [
@@ -32,6 +35,7 @@ def get_filepaths(data_path, split):
 
 # pylint: disable=redefined-outer-name
 def download_extract_and_process_dataset(data_path):
+    """Download and extract the synthtext90 dataset."""
     archive_filepath = os.path.join(data_path, 'mjsynth.tar.gz')
     extraction_directory = os.path.join(data_path, 'mnt')
     if not os.path.isfile(archive_filepath) and not os.path.isdir(extraction_directory):
@@ -45,6 +49,7 @@ def download_extract_and_process_dataset(data_path):
 
 
 def get_image_generator(filepaths, augmenter, width, height):
+    """Get an image generator for a list of SynthText90 filepaths."""
     filepaths = filepaths.copy()
     for filepath in itertools.cycle(filepaths):
         text = filepath.split(os.sep)[-1].split('_')[1].lower()
@@ -92,7 +97,7 @@ if __name__ == '__main__':
                                                       width=200,
                                                       stn=False,
                                                       optimizer=tf.keras.optimizers.RMSprop(),
-                                                      pretrained=False)
+                                                      weights=None)
     if os.path.isfile(weights_path):
         print('Loading saved weights and creating new version.')
         dt_string = datetime.datetime.now().isoformat()

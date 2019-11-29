@@ -532,21 +532,48 @@ def build_torch_model(weights_path=None):
     return model
 
 
+PRETRAINED_WEIGHTS = {
+    ('clovaai_general', True): {
+        'url': 'https://storage.googleapis.com/keras-ocr/craft_mlt_25k.pth',
+        'sha256': '4a5efbfb48b4081100544e75e1e2b57f8de3d84f213004b14b85fd4b3748db17'
+    },
+    ('clovaai_general', False): {
+        'url': 'https://storage.googleapis.com/keras-ocr/craft_mlt_25k.h5',
+        'sha256': '7283ce2ff05a0617e9740c316175ff3bacdd7215dbdf1a726890d5099431f899'
+    }
+}
+
+
 class Detector:
-    def __init__(self, pretrained=True, load_from_torch=False):
-        if pretrained and load_from_torch:
-            weights_path = tools.download_and_verify(
-                url='https://storage.googleapis.com/keras-ocr/craft_mlt_25k.pth',
-                sha256='4a5efbfb48b4081100544e75e1e2b57f8de3d84f213004b14b85fd4b3748db17')
-        elif pretrained and not load_from_torch:
-            weights_path = tools.download_and_verify(
-                url='https://storage.googleapis.com/keras-ocr/craft_mlt_25k.h5',
-                sha256='7283ce2ff05a0617e9740c316175ff3bacdd7215dbdf1a726890d5099431f899')
+    """A text detector using the CRAFT architecture.
+
+    Args:
+        weights: The weights to use for the model. Currently, only `clovaai_general`
+            is supported.
+        load_from_torch: Whether to load the weights from the original PyTorch weights.
+        optimizer: The optimizer to use for training the model.
+    """
+    def __init__(self, weights='clovaai_general', load_from_torch=False, optimizer='adam'):
+        if weights is not None:
+            pretrained_key = (weights, load_from_torch)
+            assert pretrained_key in PRETRAINED_WEIGHTS, \
+                'Selected weights configuration not found.'
+            weights_config = PRETRAINED_WEIGHTS[pretrained_key]
+            weights_path = tools.download_and_verify(url=weights_config['url'],
+                                                     sha256=weights_config['sha256'])
         else:
             weights_path = None
         self.model = build_keras_model(weights_path=weights_path)
+        self.model.compile(loss='mse', optimizer=optimizer)
 
     def get_batch_generator(self, image_generator, batch_size=8):
+        """Get a generator of X, y batches to train the detector.
+
+        Args:
+            image_generator: A generator with the same signature as
+                keras_ocr.tools.get_image_generator.
+            batch_size: The size of batches to generate.
+        """
         heatmap = get_gaussian_heatmap(512, 1.5)
         while True:
             batch = [next(image_generator) for n in range(batch_size)]

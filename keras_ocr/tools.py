@@ -1,7 +1,9 @@
 # pylint: disable=invalid-name,too-many-locals,too-many-arguments,too-many-branches,too-many-statements,stop-iteration-return
 import os
 import typing
+import random
 import hashlib
+import itertools
 import urllib.request
 import urllib.parse
 
@@ -14,6 +16,7 @@ import essential_generators
 import fontTools.ttLib
 
 LIGATURES = {'\U0000FB01': 'fi', '\U0000FB02': 'fl'}
+LIGATURE_STRING = ''.join(LIGATURES.keys())
 
 
 def read(filepath_or_image: typing.Union[str, np.ndarray]):
@@ -116,7 +119,7 @@ def compute_transformed_contour(width, height, fontsize, M, contour, minarea=0.5
     return contour
 
 
-def get_maximum_uniform_contour(image, fontsize):
+def get_maximum_uniform_contour(image, fontsize, margin=0):
     """Get the largest possible contour of light or
     dark area in an image.
 
@@ -124,13 +127,16 @@ def get_maximum_uniform_contour(image, fontsize):
         image: The image in which to find a contiguous area.
         fontsize: The fontsize for text. Will be used for blurring
             and for determining useful areas.
+        margin: The minimum margin required around the image.
 
     Returns:
         A (contour, isDark) tuple. If no contour is found, both
         entries will be None.
     """
+    if margin > 0:
+        image = image[margin:-margin, margin:-margin]
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    blurred = cv2.blur(src=gray, ksize=(fontsize, fontsize))
+    blurred = cv2.blur(src=gray, ksize=(fontsize // 2, fontsize // 2))
     _, threshold = cv2.threshold(src=blurred, thresh=255 / 2, maxval=255, type=cv2.THRESH_BINARY)
     contoursDark, _ = cv2.findContours(255 - threshold,
                                        mode=cv2.RETR_TREE,
@@ -154,6 +160,8 @@ def get_maximum_uniform_contour(image, fontsize):
     else:
         contour = contoursLight[np.argmax(areasLight)]
         isDark = False
+    if contour is not None:
+        contour += margin
     return contour, isDark
 
 
@@ -198,12 +206,12 @@ def fit(image, width: int, height: int, cval: int = 255, mode='letterbox'):
     return fitted
 
 
-def draw_text_image(text_groups,
+def draw_text_image(text,
                     fontsize,
                     height,
                     width,
                     fonts,
-                    use_ligatures,
+                    use_ligatures=False,
                     thetaX=0,
                     thetaY=0,
                     thetaZ=0,
@@ -212,11 +220,11 @@ def draw_text_image(text_groups,
     """Get a transparent image containing text.
 
     Args:
-        text_groups: A list of (category, text) tuples.
+        text: The text to draw on the image
         fontsize: The size of text to show.
         height: The height of the output image
         width: The width of the output image
-        fonts: A dictionary of {category: [paths_to_fonts]}
+        fonts: A dictionary of {subalphabet: paths_to_font}
         thetaX: Rotation about the X axis
         thetaY: Rotation about the Y axis
         thetaZ: Rotation about the Z axis
@@ -236,36 +244,42 @@ def draw_text_image(text_groups,
         of (box, character) tuples.
     """
     # pylint: disable=bad-continuation
-    fonts = {
-        category: PIL.ImageFont.truetype(font_path, size=fontsize)
-        if font_path is not None else PIL.ImageFont.load_default()
-        for category, font_path in fonts.items()
-    }
-    categories_supporting_ligatures = []
+    if not use_ligatures:
+        fonts = {
+            subalphabet: PIL.ImageFont.truetype(font_path, size=fontsize)
+            if font_path is not None else PIL.ImageFont.load_default()
+            for subalphabet, font_path in fonts.items()
+        }
     if use_ligatures:
-        for category, font in fonts.items():
-            supported = True
+        for subalphabet, font_path in fonts.items():
+            ligatures_supported = True
+            font = PIL.ImageFont.truetype(
+                font_path,
+                size=fontsize) if font_path is not None else PIL.ImageFont.load_default()
             for ligature in LIGATURES:
                 try:
                     font.getsize(ligature)
                 except UnicodeEncodeError:
-                    supported = False
+                    ligatures_supported = False
                     break
-            if supported:
-                categories_supporting_ligatures.append(category)
-    for replace, search in LIGATURES.items():
-        for index, (category, text) in enumerate(text_groups):
-            if category in categories_supporting_ligatures:
-                text_groups[index] = (category, text.replace(search, replace))
-
+            if ligatures_supported:
+                del fonts[subalphabet]
+                subalphabet += LIGATURE_STRING
+            fonts[subalphabet] = font
+        for insert, search in LIGATURES.items():
+            for subalphabet in fonts.keys()():
+                if insert in subalphabet:
+                    text = text.replace(search, insert)
+    character_font_pairs = [(character,
+                             next(font for subalphabet, font in fonts.items()
+                                  if character in subalphabet)) for character in text]
     M = get_rotation_matrix(width=width, height=height, thetaZ=thetaZ, thetaX=thetaX, thetaY=thetaY)
     if permitted_contour is None:
         permitted_contour = np.array([[0, 0], [width, 0], [width, height],
                                       [0, height]]).astype('float32')
-    character_sizes = [[fonts[category].getsize(character) for character in text]
-                       for category, text in text_groups]
-    min_character_size = min(
-        min(min(sizes) for sizes in size_groups) for size_groups in character_sizes)
+
+    character_sizes = [font.getsize(character) for character, font in character_font_pairs]
+    min_character_size = np.array(character_sizes).min()
     transformed_contour = compute_transformed_contour(width=width,
                                                       height=height,
                                                       fontsize=max(min_character_size, 1),
@@ -282,40 +296,37 @@ def draw_text_image(text_groups,
     x = start_x
     y = start_y
     out_of_space = False
-    for text_group_index, (category, text) in enumerate(text_groups):
-        font = fonts[category]
+    for character_index, (character, font) in enumerate(character_font_pairs):
         if out_of_space:
             break
-        for character_index, character in enumerate(text):
-            character_width, character_height = character_sizes[text_group_index][character_index]
-            if character in LIGATURES:
-                subcharacters = LIGATURES[character]
-                dx = character_width / len(subcharacters)
-            else:
-                subcharacters = character
-                dx = character_width
-            while cv2.pointPolygonTest(contour=transformed_contour, pt=(x, y),
-                                       measureDist=False) < 0:
-                if x + (dx * len(subcharacters)) > end_x:
-                    if y + fontsize > end_y:
-                        out_of_space = True
-                        break
-                    dy = character_height if not lines[-1] else max(box[3, 1] - box[0, 1]
-                                                                    for box, _ in lines[-1])
-                    y += dy
-                    lines.append([])
-                    x = start_x
-                    continue
-                x += fontsize
-            if out_of_space:
-                break
-            draw.text(xy=(x, y), text=character, fill=color + (255, ), font=font)
-            for subcharacter in subcharacters:
-                lines[-1].append(
-                    (np.array([[x, y], [x + dx, y], [x + dx, y + character_height],
-                               [x, y + character_height]]).astype('float32'), subcharacter))
-                sentence += subcharacter
-                x += dx
+        character_width, character_height = character_sizes[character_index]
+        if character in LIGATURES:
+            subcharacters = LIGATURES[character]
+            dx = character_width / len(subcharacters)
+        else:
+            subcharacters = character
+            dx = character_width
+        while cv2.pointPolygonTest(contour=transformed_contour, pt=(x, y), measureDist=False) < 0:
+            if x + (dx * len(subcharacters)) > end_x:
+                if y + fontsize > end_y:
+                    out_of_space = True
+                    break
+                dy = character_height if not lines[-1] else max(box[3, 1] - box[0, 1]
+                                                                for box, _ in lines[-1])
+                y += dy
+                lines.append([])
+                x = start_x
+                continue
+            x += fontsize
+        if out_of_space:
+            break
+        draw.text(xy=(x, y), text=character, fill=color + (255, ), font=font)
+        for subcharacter in subcharacters:
+            lines[-1].append((np.array([[x, y], [x + dx, y], [x + dx, y + character_height],
+                                        [x,
+                                         y + character_height]]).astype('float32'), subcharacter))
+            sentence += subcharacter
+            x += dx
     image = cv2.warpPerspective(src=np.array(image), M=M, dsize=(width, height))
     lines = [[(cv2.perspectiveTransform(src=coords[np.newaxis], m=M)[0], character)
               for coords, character in line] for line in lines]
@@ -353,7 +364,7 @@ def get_text_generator(max_string_length, alphabet=None):
     while True:
         sentence = ''.join([s for s in gen.sentence()
                             if (alphabet is None or s in alphabet)])[:max_string_length]
-        yield [('characters', sentence)]
+        yield sentence
 
 
 def convert_multiline_generator_to_single_line(multiline_generator, max_string_length, target_width,
@@ -393,24 +404,21 @@ def get_image_generator(height,
                         text_generator,
                         font_size: typing.Union[int, typing.Tuple[int, int]] = 18,
                         backgrounds: typing.List[typing.Union[str, np.ndarray]] = None,
+                        background_crop_mode='crop',
                         rotationX: typing.Union[int, typing.Tuple[int, int]] = 0,
                         rotationY: typing.Union[int, typing.Tuple[int, int]] = 0,
                         rotationZ: typing.Union[int, typing.Tuple[int, int]] = 0,
-                        augmenter1=None,
+                        margin=0,
                         use_ligatures=False,
-                        background_crop_mode='crop',
+                        augmenter1=None,
                         augmenter2=None):
     """Create a generator for images containing text.
 
     Args:
         height: The height of the generated image
         width: The width of the generated image.
-        font_groups: A dict mapping of { category: [font1, font2] }.
+        font_groups: A dict mapping of { subalphabet: [path_to_font1, path_to_font2] }.
         text_generator: See get_text_generator
-        font_weights: The list of font slants to use for each
-            category, similar in structure to font_groups.
-        font_slants: The list of font slants to use for each
-            category, similar in structure to font_groups.
         font_size: The font size to use. Alternative, supply a tuple
             and the font size will be randomly selected between
             the two values.
@@ -418,14 +426,35 @@ def get_image_generator(height,
             as numpy arrays with channels in RGB order.
         background_crop_mode: One of letterbox or crop, indicates
             how backgrounds will be resized to fit on the canvas.
-        rotation: The text rotation to use. Alternative, supply a tuple
+        rotationX: The X-axis text rotation to use. Alternative, supply a tuple
             and the rotation will be randomly selected between
             the two values.
+        rotationY: The Y-axis text rotation to use. Alternative, supply a tuple
+            and the rotation will be randomly selected between
+            the two values.
+        rotationZ: The Z-axis text rotation to use. Alternative, supply a tuple
+            and the rotation will be randomly selected between
+            the two values.
+        margin: The minimum margin around the edge of the image.
         use_ligatures: Whether to render ligatures (see `draw_text_image`)
         augmenter1: An image augmenter to be applied to backgrounds
         augmenter2: An image augmenter to be applied to images after text overlay
     """
-    for elements in text_generator:
+    if backgrounds is None:
+        backgrounds = [np.zeros((height, width, 3), dtype='uint8')]
+    alphabet = ''.join(font_groups.keys())
+    assert len(set(alphabet)) == len(
+        alphabet), 'Each character can appear in the subalphabet for only one font group.'
+    for text, background_index, current_font_groups in zip(
+            text_generator, itertools.cycle(range(len(backgrounds))),
+            zip(*[
+                itertools.cycle([(subalphabet, font_filepath)
+                                 for font_filepath in font_group_filepaths])
+                for subalphabet, font_group_filepaths in font_groups.items()
+            ])):
+        if background_index == 0:
+            random.shuffle(backgrounds)
+        current_font_groups = dict(current_font_groups)
         current_font_size = np.random.randint(low=font_size[0], high=font_size[1]) if isinstance(
             font_size, tuple) else font_size
         current_rotation_X, current_rotation_Y, current_rotation_Z = [
@@ -433,29 +462,26 @@ def get_image_generator(height,
              if isinstance(rotation, tuple) else rotation) * np.pi / 180
             for rotation in [rotationX, rotationY, rotationZ]
         ]
-        current_font_groups = {
-            category: np.random.choice(options)
-            for category, options in font_groups.items()
-        }
-        if backgrounds is not None:
-            current_background_filepath_or_array = backgrounds[np.random.randint(len(backgrounds))]
-            current_background = read(current_background_filepath_or_array) if isinstance(
-                current_background_filepath_or_array, str) else current_background_filepath_or_array
-            if augmenter1 is not None:
-                current_background = augmenter1(images=[current_background])[0]
-            if current_background.shape[0] != height or current_background.shape[1] != width:
-                current_background = fit(current_background,
-                                         width=width,
-                                         height=height,
-                                         mode=background_crop_mode)
-            permitted_contour, isDark = get_maximum_uniform_contour(image=current_background,
-                                                                    fontsize=current_font_size)
-            text_color = (255, 255, 255) if isDark else (0, 0, 0)
-        else:
-            current_background = np.zeros((height, width, 3), dtype='uint8')
-            permitted_contour = None
-            text_color = (255, 255, 255)
-        text_image, sentence, lines = draw_text_image(text_groups=elements,
+        current_background_filepath_or_array = backgrounds[background_index]
+        current_background = read(current_background_filepath_or_array) if isinstance(
+            current_background_filepath_or_array, str) else current_background_filepath_or_array
+        if augmenter1 is not None:
+            current_background = augmenter1(images=[current_background])[0]
+        if current_background.shape[0] != height or current_background.shape[1] != width:
+            current_background = fit(current_background,
+                                     width=width,
+                                     height=height,
+                                     mode=background_crop_mode)
+        permitted_contour, isDark = get_maximum_uniform_contour(image=current_background,
+                                                                fontsize=current_font_size,
+                                                                margin=margin)
+        if permitted_contour is None:
+            # We can't draw on this background. Boo!
+            continue
+        random_color_values = np.random.randint(low=0, high=20, size=3)
+        text_color = tuple(np.array([255, 255, 255]) -
+                           random_color_values) if isDark else tuple(random_color_values)
+        text_image, sentence, lines = draw_text_image(text=text,
                                                       width=width,
                                                       height=height,
                                                       fontsize=current_font_size,
@@ -474,6 +500,7 @@ def get_image_generator(height,
 
 
 def sha256sum(filename):
+    """Compute the sha256 hash for a file."""
     h = hashlib.sha256()
     b = bytearray(128 * 1024)
     mv = memoryview(b)

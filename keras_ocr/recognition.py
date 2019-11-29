@@ -10,12 +10,17 @@ import cv2
 from . import tools
 
 PRETRAINED_WEIGHTS = {
-    # Keys are (alphabet, filters, rnn_units, color, stn)
+    # Keys are (weights_name, include_top, filters, rnn_units, color, stn)
     # pylint: disable=line-too-long
-    (string.digits + string.ascii_lowercase, (64, 128, 256, 256, 512, 512, 512), (128, 128), False, True):
-    {
+    ('kurapan', True, (64, 128, 256, 256, 512, 512, 512), (128, 128), False, True): {
         'url': 'https://storage.googleapis.com/keras-ocr/crnn_kurapan.h5',
-        'sha256': 'a7d8086ac8f5c3d6a0a828f7d6fbabcaf815415dd125c32533013f85603be46d'
+        'sha256': 'a7d8086ac8f5c3d6a0a828f7d6fbabcaf815415dd125c32533013f85603be46d',
+        'alphabet': string.digits + string.ascii_lowercase
+    },
+    ('kurapan', False, (64, 128, 256, 256, 512, 512, 512), (128, 128), False, True): {
+        'url': 'https://storage.googleapis.com/keras-ocr/crnn_kurapan_notop.h5',
+        'sha256': '027fd2cced3cbea0c4f5894bb8e9e85bac04f11daf96b8fdcf1e4ee95dcf51b9',
+        'alphabet': None
     }
 }
 
@@ -270,7 +275,8 @@ class Recognizer:
                  optimizer=None,
                  stn=True,
                  rnn_steps_to_discard=2,
-                 pretrained='top'):
+                 weights='kurapan',
+                 include_top=True):
         if filters is None:
             filters = [64, 128, 256, 256, 512, 512, 512]
         assert len(filters) == 7, '7 CNN filters must be provided.'
@@ -290,20 +296,20 @@ class Recognizer:
             filters=filters,
             rnn_units=rnn_units,
             dropout=dropout)
-        if pretrained == 'top':
-            pretrained_key = (alphabet, tuple(filters), tuple(rnn_units), color, stn)
+        if weights is not None:
+            pretrained_key = (weights, include_top, tuple(filters), tuple(rnn_units), color, stn)
             assert pretrained_key in PRETRAINED_WEIGHTS, (
                 'No pretrained weights available for this configuration. '
-                'Please set pretrained=False.')
-            pretrained_target = self.model
-        elif pretrained == 'backbone':
-            pretrained_key = (tuple(filters), tuple(rnn_units), color, stn)
-            pretrained_target = self.backbone
-        if pretrained:
-            assert pretrained_key in PRETRAINED_WEIGHTS, (
-                'No pretrained weights available for this configuration. '
-                'Please set pretrained=False.')
+                'Please set weights=None.')
             pretrained_config = PRETRAINED_WEIGHTS[pretrained_key]
+            if include_top:
+                pretrained_target = self.model
+                assert pretrained_config['alphabet'] == alphabet, (
+                    'Provided alphabet does not match pretrained alphabet. '
+                    'Please use `alphabet={alphabet}` or `include_top=False`').format(
+                        alphabet=alphabet)
+            else:
+                pretrained_target = self.backbone
             pretrained_target.load_weights(
                 tools.download_and_verify(url=pretrained_config['url'],
                                           sha256=pretrained_config['sha256']))

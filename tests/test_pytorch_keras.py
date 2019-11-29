@@ -1,4 +1,4 @@
-# pylint: disable=no-member
+# pylint: disable=no-member,invalid-name
 import os
 
 import numpy as np
@@ -7,11 +7,17 @@ import torch
 
 import keras_ocr
 
-
-@pytest.mark.skipif(not os.path.isfile(
+torch_weights_available = os.path.isfile(
     os.path.expanduser(
         os.path.join('~', '.keras-ocr',
-                     'https://storage.googleapis.com/keras-ocr/craft_mlt_25k.pth'))),
+                     'https://storage.googleapis.com/keras-ocr/craft_mlt_25k.pth')))
+keras_weights_available = os.path.isfile(
+    os.path.expanduser(
+        os.path.join('~', '.keras-ocr',
+                     'https://storage.googleapis.com/keras-ocr/craft_mlt_25k.h5')))
+
+
+@pytest.mark.skipif(not keras_weights_available and torch_weights_available,
                     reason="CRAFT weights required.")
 def test_pytorch_identical_output():
     weights_path_torch = keras_ocr.tools.download_and_verify(
