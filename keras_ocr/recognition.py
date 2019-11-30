@@ -314,7 +314,7 @@ class Recognizer:
                 tools.download_and_verify(url=pretrained_config['url'],
                                           sha256=pretrained_config['sha256']))
 
-    def get_batch_generator(self, image_generator, batch_size=8):
+    def get_batch_generator(self, image_generator, batch_size=8, lowercase=False):
         """
         Generate batches of training data.
 
@@ -323,6 +323,8 @@ class Recognizer:
                 be in color even if the OCR is setup to handle grayscale as they
                 will be converted here.
             batch_size: How many images to generate at a time.
+            lowercase: Whether to convert all characters to lowercase before
+                encoding.
         """
         y = np.zeros((batch_size, 1))
         if self.training_model is None:
@@ -339,6 +341,8 @@ class Recognizer:
                 images = [image for image, _, _ in batch]
             images = np.array([image.astype('float32') / 255 for image in images])
             sentences = [sentence for _, sentence, _ in batch]
+            if lowercase:
+                sentences = [sentence.lower() for sentence in sentences]
             assert all(c in self.alphabet
                        for c in ''.join(sentences)), 'Found illegal characters in sentence.'
             assert all(sentences), 'Found a zero length sentence.'
