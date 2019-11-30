@@ -314,7 +314,8 @@ def draw_text_image(text,
                 dy = character_height if not lines[-1] else max(box[3, 1] - box[0, 1]
                                                                 for box, _ in lines[-1])
                 y += dy
-                lines.append([])
+                if len(lines[-1]) > 0:
+                    lines.append([])
                 x = start_x
                 continue
             x += fontsize
@@ -329,7 +330,7 @@ def draw_text_image(text,
             x += dx
     image = cv2.warpPerspective(src=np.array(image), M=M, dsize=(width, height))
     lines = [[(cv2.perspectiveTransform(src=coords[np.newaxis], m=M)[0], character)
-              for coords, character in line] for line in lines]
+              for coords, character in line] for line in lines if len(line) > 0]
     return image, sentence, lines
 
 
