@@ -15,7 +15,7 @@ pip install keras-ocr
 ### Using
 
 #### Using pretrained text detection and recognition models
-The package ships with an easy-to-use implementation of the CRAFT text detection model with the original weights.
+The package ships with an easy-to-use implementation of the CRAFT text detection model from [this repository](https://github.com/clovaai/CRAFT-pytorch) and the CRNN recognition model from [this repository](https://github.com/kurapan/CRNN).
 
 ```python
 import matplotlib.pyplot as plt
