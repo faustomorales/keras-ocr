@@ -24,15 +24,19 @@ import keras_ocr
 
 # keras-ocr will automatically download pretrained
 # weights for the detector and recognizer.
-detector = keras_ocr.detection.Detector(pretrained=True)
-recognizer = keras_ocr.recognition.Recognizer(pretrained=True)
+detector = keras_ocr.detection.Detector()
+recognizer = keras_ocr.recognition.Recognizer()
 
 image = keras_ocr.tools.read('tests/test_image.jpg')
 
 # Boxes will be an Nx4x2 array of box quadrangles
 # where N is the number of detected text boxes.
 boxes = detector.detect(images=[image])[0]
+
+# Predictions is a list of (string, box) tuples.
 predictions = recognizer.recognize_from_boxes(image=image, boxes=boxes)
+
+# Plot the results.
 fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(10, 10))
 canvas = keras_ocr.detection.drawBoxes(image, boxes)
 ax1.imshow(image)
