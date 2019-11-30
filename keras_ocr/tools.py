@@ -1,5 +1,6 @@
 # pylint: disable=invalid-name,too-many-locals,too-many-arguments,too-many-branches,too-many-statements,stop-iteration-return
 import os
+import math
 import typing
 import random
 import hashlib
@@ -37,14 +38,15 @@ def read(filepath_or_image: typing.Union[str, np.ndarray]):
     return image
 
 
-def warpBox(image, box, target_height, target_width):
+def warpBox(image, box, target_height, target_width, margin=0):
     """Warp a box given by a set of four points into
     a specific shape."""
     _, _, w, h = cv2.boundingRect(box)
     scale = min(target_width / w, target_height / h)
     M = cv2.getPerspectiveTransform(src=box,
-                                    dst=np.array([[0, 0], [scale * w, 0], [scale * w, scale * h],
-                                                  [0, scale * h]]).astype('float32'))
+                                    dst=np.array([[margin, margin], [scale * w - margin, margin],
+                                                  [scale * w - margin, scale * h - margin],
+                                                  [margin, scale * h - margin]]).astype('float32'))
     crop = cv2.warpPerspective(image, M, dsize=(int(scale * w), int(scale * h)))
     full = np.zeros((target_height, target_width, 3)).astype('uint8')
     full[:crop.shape[0], :crop.shape[1]] = crop
@@ -95,14 +97,15 @@ def compute_transformed_contour(width, height, fontsize, M, contour, minarea=0.5
             a fraction of the untransformed fontsize x fontsize
             slot.
     """
-    xslots = int(np.floor(width / fontsize))
-    yslots = int(np.floor(height / fontsize))
+    spacing = math.ceil(fontsize / 2)
+    xslots = int(np.floor(width / spacing))
+    yslots = int(np.floor(height / spacing))
     ys, xs = np.mgrid[:yslots, :xslots]
     basis = np.concatenate([xs[..., np.newaxis], ys[..., np.newaxis]], axis=-1).reshape((-1, 2))
-    basis *= fontsize
+    basis *= spacing
     slots_pretransform = np.concatenate(
         [(basis + offset)[:, np.newaxis, :]
-         for offset in [[0, 0], [fontsize, 0], [fontsize, fontsize], [0, fontsize]]],
+         for offset in [[0, 0], [spacing, 0], [spacing, spacing], [0, spacing]]],
         axis=1)
     slots = cv2.perspectiveTransform(src=slots_pretransform.reshape((1, -1, 2)).astype('float32'),
                                      m=M)[0]
@@ -114,8 +117,19 @@ def compute_transformed_contour(width, height, fontsize, M, contour, minarea=0.5
                    (slots[:, 1, 0] * slots[:, 2, 1] - slots[:, 1, 1] * slots[:, 2, 0]) +
                    (slots[:, 2, 0] * slots[:, 3, 1] - slots[:, 2, 1] * slots[:, 3, 0]) +
                    (slots[:, 3, 0] * slots[:, 0, 1] - slots[:, 3, 1] * slots[:, 0, 0])) / 2
-    slots_filtered = slots_pretransform[(areas > minarea * fontsize * fontsize) & inside]
-    contour = cv2.convexHull(points=slots_filtered[:, 0, :])[:, 0, :]
+    slots_filtered = slots_pretransform[(areas > minarea * spacing * spacing) & inside]
+    temporary_image = cv2.drawContours(image=np.zeros((height, width), dtype='uint8'),
+                                       contours=slots_filtered,
+                                       contourIdx=-1,
+                                       color=255)
+    temporary_image = cv2.dilate(src=temporary_image, kernel=np.ones((spacing, spacing)))
+    newContours, _ = cv2.findContours(temporary_image,
+                                      mode=cv2.RETR_TREE,
+                                      method=cv2.CHAIN_APPROX_SIMPLE)
+    x, y = slots_filtered[0][0]
+    contour = newContours[next(
+        index for index, contour in enumerate(newContours)
+        if cv2.pointPolygonTest(contour=contour, pt=(x, y), measureDist=False) >= 0)][:, 0, :]
     return contour
 
 
@@ -216,7 +230,8 @@ def draw_text_image(text,
                     thetaY=0,
                     thetaZ=0,
                     color=(0, 0, 0),
-                    permitted_contour=None):
+                    permitted_contour=None,
+                    draw_contour=False):
     """Get a transparent image containing text.
 
     Args:
@@ -277,7 +292,6 @@ def draw_text_image(text,
     if permitted_contour is None:
         permitted_contour = np.array([[0, 0], [width, 0], [width, height],
                                       [0, height]]).astype('float32')
-
     character_sizes = [font.getsize(character) for character, font in character_font_pairs]
     min_character_size = np.array(character_sizes).min()
     transformed_contour = compute_transformed_contour(width=width,
@@ -295,6 +309,7 @@ def draw_text_image(text,
     sentence = ''
     x = start_x
     y = start_y
+    max_y = start_y
     out_of_space = False
     for character_index, (character, font) in enumerate(character_font_pairs):
         if out_of_space:
@@ -306,29 +321,41 @@ def draw_text_image(text,
         else:
             subcharacters = character
             dx = character_width
-        while cv2.pointPolygonTest(contour=transformed_contour, pt=(x, y), measureDist=False) < 0:
-            if x + (dx * len(subcharacters)) > end_x:
-                if y + fontsize > end_y:
+        x2, y2 = (x + character_width, y + character_height)
+        while not all(
+                cv2.pointPolygonTest(contour=transformed_contour, pt=pt, measureDist=False) >= 0
+                for pt in [(x, y), (x2, y), (x2, y2), (x, y2)]):
+            if x2 > end_x:
+                dy = max(1, max_y - y)
+                if y + dy > end_y:
                     out_of_space = True
                     break
-                dy = character_height if not lines[-1] else max(box[3, 1] - box[0, 1]
-                                                                for box, _ in lines[-1])
                 y += dy
-                if len(lines[-1]) > 0:
-                    lines.append([])
                 x = start_x
-                continue
-            x += fontsize
+            else:
+                x += fontsize
+            if len(lines[-1]) > 0:
+                # We add a new line whether we have advanced
+                # in the y-direction or not because we also want to separate
+                # horizontal segments of text.
+                lines.append([])
+            x2, y2 = (x + character_width, y + character_height)
         if out_of_space:
             break
+        max_y = max(y + character_height, max_y)
         draw.text(xy=(x, y), text=character, fill=color + (255, ), font=font)
         for subcharacter in subcharacters:
-            lines[-1].append((np.array([[x, y], [x + dx, y], [x + dx, y + character_height],
-                                        [x,
-                                         y + character_height]]).astype('float32'), subcharacter))
+            lines[-1].append((np.array([[x, y], [x + dx, y], [x + dx, y2],
+                                        [x, y2]]).astype('float32'), subcharacter))
             sentence += subcharacter
             x += dx
     image = cv2.warpPerspective(src=np.array(image), M=M, dsize=(width, height))
+    if draw_contour:
+        image = cv2.drawContours(image,
+                                 contours=[permitted_contour.reshape((-1, 1, 2)).astype('int32')],
+                                 contourIdx=0,
+                                 color=(255, 0, 0, 255),
+                                 thickness=int(width / 100))
     lines = [[(cv2.perspectiveTransform(src=coords[np.newaxis], m=M)[0], character)
               for coords, character in line] for line in lines if len(line) > 0]
     return image, sentence, lines
@@ -357,26 +384,30 @@ def read_and_fit(filepath_or_array: typing.Union[str, np.ndarray],
     return image
 
 
-def get_text_generator(max_string_length, alphabet=None, lowercase=False):
+def get_text_generator(alphabet=None, lowercase=False, max_string_length=None):
     """Generates strings of sentences using only the letters in alphabet.
 
     Args:
-        max_string_length: The maximum length of the string
         alphabet: The alphabet of permitted characters
         lowercase: Whether to convert all strings to lowercase.
+        max_string_length: The maximum length of the string
     """
     gen = essential_generators.DocumentGenerator()
     while True:
         sentence = gen.sentence()
         if lowercase:
             sentence = sentence.lower()
-        sentence = ''.join([s for s in sentence
-                            if (alphabet is None or s in alphabet)])[:max_string_length]
+        sentence = ''.join([s for s in sentence if (alphabet is None or s in alphabet)])
+        if max_string_length is not None:
+            sentence = sentence[:max_string_length]
         yield sentence
 
 
-def convert_multiline_generator_to_single_line(multiline_generator, max_string_length, target_width,
-                                               target_height):
+def convert_multiline_generator_to_single_line(multiline_generator,
+                                               max_string_length,
+                                               target_width,
+                                               target_height,
+                                               margin=0):
     """Convert an image generator that creates multiline images to
     a generator suitable for training an OCR model with single lines.
 
@@ -385,6 +416,7 @@ def convert_multiline_generator_to_single_line(multiline_generator, max_string_l
         max_stiring_length: The maximum string length to allow
         target_width: The width to warp lines into
         target_height: The height to warp lines into
+        margin: The margin to apply around a single line.
     """
     while True:
         image, sentence, lines = next(multiline_generator)
@@ -402,7 +434,8 @@ def convert_multiline_generator_to_single_line(multiline_generator, max_string_l
         image = warpBox(image=image,
                         box=box,
                         target_width=target_width,
-                        target_height=target_height)
+                        target_height=target_height,
+                        margin=margin)
         yield image, sentence, lines
 
 
@@ -419,7 +452,9 @@ def get_image_generator(height,
                         margin=0,
                         use_ligatures=False,
                         augmenter1=None,
-                        augmenter2=None):
+                        augmenter2=None,
+                        draw_contour=False,
+                        draw_contour_text=False):
     """Create a generator for images containing text.
 
     Args:
@@ -447,6 +482,9 @@ def get_image_generator(height,
         use_ligatures: Whether to render ligatures (see `draw_text_image`)
         augmenter1: An image augmenter to be applied to backgrounds
         augmenter2: An image augmenter to be applied to images after text overlay
+        draw_contour: Draw the permitted contour onto images (debugging only)
+        draw_contour_text: Draw the permitted contour inside the text
+            drawing function.
     """
     if backgrounds is None:
         backgrounds = [np.zeros((height, width, 3), dtype='uint8')]
@@ -486,7 +524,7 @@ def get_image_generator(height,
         if permitted_contour is None:
             # We can't draw on this background. Boo!
             continue
-        random_color_values = np.random.randint(low=0, high=20, size=3)
+        random_color_values = np.random.randint(low=0, high=10, size=3)
         text_color = tuple(np.array([255, 255, 255]) -
                            random_color_values) if isDark else tuple(random_color_values)
         text_image, sentence, lines = draw_text_image(text=text,
@@ -499,9 +537,17 @@ def get_image_generator(height,
                                                       thetaZ=current_rotation_Z,
                                                       use_ligatures=use_ligatures,
                                                       permitted_contour=permitted_contour,
-                                                      color=text_color)
+                                                      color=text_color,
+                                                      draw_contour=draw_contour_text)
         alpha = text_image[..., -1:].astype('float32') / 255
         image = (alpha * text_image[..., :3] + (1 - alpha) * current_background).astype('uint8')
+        if draw_contour:
+            image = cv2.drawContours(
+                image,
+                contours=[permitted_contour.reshape((-1, 1, 2)).astype('int32')],
+                contourIdx=0,
+                color=(255, 0, 0),
+                thickness=int(width / 100))
         if augmenter2 is not None:
             image = augmenter2(images=[image])[0]
         yield image, sentence, lines
