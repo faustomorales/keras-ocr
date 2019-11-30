@@ -357,13 +357,20 @@ def read_and_fit(filepath_or_array: typing.Union[str, np.ndarray],
     return image
 
 
-def get_text_generator(max_string_length, alphabet=None):
-    """Generates a lists of tuples of the form (category, content)
-    where category is always "characters."
+def get_text_generator(max_string_length, alphabet=None, lowercase=False):
+    """Generates strings of sentences using only the letters in alphabet.
+
+    Args:
+        max_string_length: The maximum length of the string
+        alphabet: The alphabet of permitted characters
+        lowercase: Whether to convert all strings to lowercase.
     """
     gen = essential_generators.DocumentGenerator()
     while True:
-        sentence = ''.join([s for s in gen.sentence()
+        sentence = gen.sentence()
+        if lowercase:
+            sentence = sentence.lower()
+        sentence = ''.join([s for s in sentence
                             if (alphabet is None or s in alphabet)])[:max_string_length]
         yield sentence
 
