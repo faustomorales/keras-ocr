@@ -566,15 +566,23 @@ class Detector:
         self.model = build_keras_model(weights_path=weights_path)
         self.model.compile(loss='mse', optimizer=optimizer)
 
-    def get_batch_generator(self, image_generator, batch_size=8):
+    def get_batch_generator(self,
+                            image_generator,
+                            batch_size=8,
+                            heatmap_size=512,
+                            heatmap_distance_ratio=1.5):
         """Get a generator of X, y batches to train the detector.
 
         Args:
             image_generator: A generator with the same signature as
                 keras_ocr.tools.get_image_generator.
             batch_size: The size of batches to generate.
+            heatmap_size: The size of the heatmap to pass to get_gaussian_heatmap
+            heatmap_distance_ratio: The distance ratio to pass to
+                get_gaussian_heatmap. The larger the value, the more tightly
+                concentrated the heatmap becomes.
         """
-        heatmap = get_gaussian_heatmap(512, 1.5)
+        heatmap = get_gaussian_heatmap(size=heatmap_size, distanceRatio=heatmap_distance_ratio)
         while True:
             batch = [next(image_generator) for n in range(batch_size)]
             images = np.array([entry[0] for entry in batch])
@@ -590,7 +598,12 @@ class Detector:
             # pylint: enable=unsubscriptable-object
             yield X, y
 
-    def detect(self, images: typing.List[typing.Union[np.ndarray, str]]):
+    def detect(self,
+               images: typing.List[typing.Union[np.ndarray, str]],
+               detection_threshold=0.7,
+               text_threshold=0.4,
+               link_threshold=0.4,
+               size_threshold=10):
         """Recognize the text in a set of images.
 
         Args:
@@ -600,5 +613,10 @@ class Detector:
         images = [compute_input(tools.read(image)) for image in images]
         boxes = []
         for image in images:
-            boxes.append(getBoxes(self.model.predict(image[np.newaxis]))[0])
+            boxes.append(
+                getBoxes(self.model.predict(image[np.newaxis]),
+                         detection_threshold=detection_threshold,
+                         text_threshold=text_threshold,
+                         link_threshold=link_threshold,
+                         size_threshold=size_threshold)[0])
         return boxes

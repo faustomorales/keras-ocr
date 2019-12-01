@@ -31,9 +31,8 @@ image = keras_ocr.tools.read('tests/test_image.jpg')
 
 # Boxes will be an Nx4x2 array of box quadrangles
 # where N is the number of detected text boxes.
-boxes = detector.detect(images=[image])[0]
-
 # Predictions is a list of (string, box) tuples.
+boxes = detector.detect(images=[image])[0]
 predictions = recognizer.recognize_from_boxes(image=image, boxes=boxes)
 
 # Plot the results.

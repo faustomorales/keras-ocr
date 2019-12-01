@@ -292,8 +292,9 @@ def draw_text_image(text,
     if permitted_contour is None:
         permitted_contour = np.array([[0, 0], [width, 0], [width, height],
                                       [0, height]]).astype('float32')
-    character_sizes = [font.getsize(character) for character, font in character_font_pairs]
-    min_character_size = np.array(character_sizes).min()
+    character_sizes = np.array(
+        [font.font.getsize(character) for character, font in character_font_pairs])
+    min_character_size = character_sizes.sum(axis=1).min()
     transformed_contour = compute_transformed_contour(width=width,
                                                       height=height,
                                                       fontsize=max(min_character_size, 1),
@@ -314,14 +315,14 @@ def draw_text_image(text,
     for character_index, (character, font) in enumerate(character_font_pairs):
         if out_of_space:
             break
-        character_width, character_height = character_sizes[character_index]
+        (character_width, character_height), (offset_x, offset_y) = character_sizes[character_index]
         if character in LIGATURES:
             subcharacters = LIGATURES[character]
             dx = character_width / len(subcharacters)
         else:
             subcharacters = character
             dx = character_width
-        x2, y2 = (x + character_width, y + character_height)
+        x2, y2 = (x + character_width + offset_x, y + character_height + offset_y)
         while not all(
                 cv2.pointPolygonTest(contour=transformed_contour, pt=pt, measureDist=False) >= 0
                 for pt in [(x, y), (x2, y), (x2, y2), (x, y2)]):
@@ -339,14 +340,15 @@ def draw_text_image(text,
                 # in the y-direction or not because we also want to separate
                 # horizontal segments of text.
                 lines.append([])
-            x2, y2 = (x + character_width, y + character_height)
+            x2, y2 = (x + character_width + offset_x, y + character_height + offset_y)
         if out_of_space:
             break
-        max_y = max(y + character_height, max_y)
+        max_y = max(y + character_height + offset_y, max_y)
         draw.text(xy=(x, y), text=character, fill=color + (255, ), font=font)
         for subcharacter in subcharacters:
-            lines[-1].append((np.array([[x, y], [x + dx, y], [x + dx, y2],
-                                        [x, y2]]).astype('float32'), subcharacter))
+            lines[-1].append((np.array([[x + offset_x, y + offset_y],
+                                        [x + dx + offset_x, y + offset_y], [x + dx + offset_x, y2],
+                                        [x + offset_x, y2]]).astype('float32'), subcharacter))
             sentence += subcharacter
             x += dx
     image = cv2.warpPerspective(src=np.array(image), M=M, dsize=(width, height))
@@ -356,8 +358,9 @@ def draw_text_image(text,
                                  contourIdx=0,
                                  color=(255, 0, 0, 255),
                                  thickness=int(width / 100))
+    lines = strip_lines(lines)
     lines = [[(cv2.perspectiveTransform(src=coords[np.newaxis], m=M)[0], character)
-              for coords, character in line] for line in lines if len(line) > 0]
+              for coords, character in line] for line in lines]
     return image, sentence, lines
 
 
@@ -403,6 +406,25 @@ def get_text_generator(alphabet=None, lowercase=False, max_string_length=None):
         yield sentence
 
 
+def strip_line(line):
+    """Modify a line so that spaces are excluded."""
+    first_character_index = next(
+        (index for index, (box, character) in enumerate(line) if not character.isspace()), None)
+    if first_character_index is None:
+        return []
+    last_character_index = len(line) - next(
+        index for index, (box, character) in enumerate(reversed(line)) if not character.isspace())
+    return line[first_character_index:last_character_index]
+
+
+def strip_lines(lines):
+    """Modify a set of lines so that spaces are excluded."""
+    lines = [line for line in lines if len(line) > 0]
+    lines = [strip_line(line) for line in lines]
+    lines = [line for line in lines if len(line) > 0]
+    return lines
+
+
 def convert_multiline_generator_to_single_line(multiline_generator,
                                                max_string_length,
                                                target_width,
@@ -413,7 +435,7 @@ def convert_multiline_generator_to_single_line(multiline_generator,
 
     Args:
         multiline_generator: A genreator for multiline images
-        max_stiring_length: The maximum string length to allow
+        max_string_length: The maximum string length to allow
         target_width: The width to warp lines into
         target_height: The height to warp lines into
         margin: The margin to apply around a single line.
@@ -422,7 +444,7 @@ def convert_multiline_generator_to_single_line(multiline_generator,
         image, sentence, lines = next(multiline_generator)
         if len(lines) == 0:
             continue
-        subset = lines[np.random.randint(0, len(lines))][:max_string_length]
+        subset = strip_line(lines[np.argmax(list(map(len, lines)))][:max_string_length])
         points = np.concatenate(
             [coords[:2] for coords, _ in subset] +
             [np.array([coords[3], coords[2]]) for coords, _ in reversed(subset)]).astype('float32')
@@ -526,7 +548,7 @@ def get_image_generator(height,
         if permitted_contour is None:
             # We can't draw on this background. Boo!
             continue
-        random_color_values = np.random.randint(low=0, high=10, size=3)
+        random_color_values = np.random.randint(low=0, high=50, size=3)
         text_color = tuple(np.array([255, 255, 255]) -
                            random_color_values) if isDark else tuple(random_color_values)
         text_image, sentence, lines = draw_text_image(text=text,

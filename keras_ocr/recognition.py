@@ -340,7 +340,7 @@ class Recognizer:
             else:
                 images = [image for image, _, _ in batch]
             images = np.array([image.astype('float32') / 255 for image in images])
-            sentences = [sentence for _, sentence, _ in batch]
+            sentences = [sentence.strip() for _, sentence, _ in batch]
             if lowercase:
                 sentences = [sentence.lower() for sentence in sentences]
             assert all(c in self.alphabet
