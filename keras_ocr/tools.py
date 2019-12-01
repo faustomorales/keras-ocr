@@ -420,6 +420,8 @@ def convert_multiline_generator_to_single_line(multiline_generator,
     """
     while True:
         image, sentence, lines = next(multiline_generator)
+        if len(lines) == 0:
+            continue
         subset = lines[np.random.randint(0, len(lines))][:max_string_length]
         points = np.concatenate(
             [coords[:2] for coords, _ in subset] +
