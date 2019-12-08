@@ -475,8 +475,7 @@ def get_image_generator(height,
                         rotationZ: typing.Union[int, typing.Tuple[int, int]] = 0,
                         margin=0,
                         use_ligatures=False,
-                        augmenter1=None,
-                        augmenter2=None,
+                        augmenter=None,
                         draw_contour=False,
                         draw_contour_text=False):
     """Create a generator for images containing text.
@@ -504,8 +503,7 @@ def get_image_generator(height,
             the two values.
         margin: The minimum margin around the edge of the image.
         use_ligatures: Whether to render ligatures (see `draw_text_image`)
-        augmenter1: An image augmenter to be applied to backgrounds
-        augmenter2: An image augmenter to be applied to images after text overlay
+        augmenter: An image augmenter to be applied to backgrounds
         draw_contour: Draw the permitted contour onto images (debugging only)
         draw_contour_text: Draw the permitted contour inside the text
             drawing function.
@@ -535,8 +533,8 @@ def get_image_generator(height,
         current_background_filepath_or_array = backgrounds[background_index]
         current_background = read(current_background_filepath_or_array) if isinstance(
             current_background_filepath_or_array, str) else current_background_filepath_or_array
-        if augmenter1 is not None:
-            current_background = augmenter1(images=[current_background])[0]
+        if augmenter is not None:
+            current_background = augmenter(images=[current_background])[0]
         if current_background.shape[0] != height or current_background.shape[1] != width:
             current_background = fit(current_background,
                                      width=width,
@@ -572,8 +570,6 @@ def get_image_generator(height,
                 contourIdx=0,
                 color=(255, 0, 0),
                 thickness=int(width / 100))
-        if augmenter2 is not None:
-            image = augmenter2(images=[image])[0]
         yield image, sentence, lines
 
 
