@@ -6,3 +6,4 @@ Examples
    :caption: Contents:
 
    end_to_end_training
+   using_pretrained_models
