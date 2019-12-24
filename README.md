@@ -45,4 +45,4 @@ for text, box in predictions:
     ax2.annotate(s=text, xy=box[0], xytext=box[0] - 50, arrowprops={'arrowstyle': '->'})
 ```
 
-![example of labeled image](tests/test_image_labeled.jpg)
+![example of labeled image](https://raw.githubusercontent.com/faustomorales/keras-ocr/master/tests/test_image_labeled.jpg)
