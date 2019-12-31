@@ -10,6 +10,9 @@ Please note that, right now, we use a very simple training mechanism for the
 text detector which seems to work but does not match the method used in the
 original implementation.
 
+An interactive version of this example on Google Colab is provided `here
+<https://colab.research.google.com/drive/19dGKong-LraUG3wYlJuPCquemJ13NN8R>`_.
+
 Generating synthetic data
 *************************
 
@@ -39,22 +42,24 @@ The backgrounds folder contains about just over 1,000 image backgrounds.
 
     assert tf.test.is_gpu_available(), 'No GPU is available.'
 
+    data_dir = '.'
+
     if not os.path.isdir('fonts'):
-    fonts_zip_path = keras_ocr.tools.download_and_verify(
-        url='https://storage.googleapis.com/keras-ocr/fonts.zip',
-        sha256='d4d90c27a9bc4bf8fff1d2c0a00cfb174c7d5d10f60ed29d5f149ef04d45b700',
-        cache_dir=data_dir
-    )
-    with zipfile.ZipFile(fonts_zip_path) as zfile:
-        zfile.extractall('./fonts')
+        fonts_zip_path = keras_ocr.tools.download_and_verify(
+            url='https://storage.googleapis.com/keras-ocr/fonts.zip',
+            sha256='d4d90c27a9bc4bf8fff1d2c0a00cfb174c7d5d10f60ed29d5f149ef04d45b700',
+            cache_dir=data_dir
+        )
+        with zipfile.ZipFile(fonts_zip_path) as zfile:
+            zfile.extractall('./fonts')
     if not os.path.isdir('backgrounds'):
-    backgrounds_zip_path = keras_ocr.tools.download_and_verify(
-        url='https://storage.googleapis.com/keras-ocr/backgrounds.zip',
-        sha256='f263ed0d55de303185cc0f93e9fcb0b13104d68ed71af7aaaa8e8c91389db471',
-        cache_dir=data_dir
-    )
-    with zipfile.ZipFile(backgrounds_zip_path) as zfile:
-        zfile.extractall('./backgrounds')
+        backgrounds_zip_path = keras_ocr.tools.download_and_verify(
+            url='https://storage.googleapis.com/keras-ocr/backgrounds.zip',
+            sha256='f263ed0d55de303185cc0f93e9fcb0b13104d68ed71af7aaaa8e8c91389db471',
+            cache_dir=data_dir
+        )
+        with zipfile.ZipFile(backgrounds_zip_path) as zfile:
+            zfile.extractall('./backgrounds')
     
     alphabet = string.digits + string.ascii_letters + '!?. '
     recognizer_alphabet = ''.join(sorted(set(alphabet.lower())))
@@ -63,7 +68,7 @@ The backgrounds folder contains about just over 1,000 image backgrounds.
         filepath for filepath in tqdm.tqdm(glob.glob('fonts/**/*.ttf'))
         if (
             (not any(keyword in filepath.lower() for keyword in ['thin', 'light'])) and
-            keras_ocr.tools.font_supports_alphabet(filepath=filepath, alphabet=alphabet)
+            keras_ocr.data_generation.font_supports_alphabet(filepath=filepath, alphabet=alphabet)
         )
     ]
 
@@ -73,38 +78,38 @@ With a set of fonts, backgrounds, and alphabet, we now build our data generators
 
 In order to create images, we need random strings. :code:`keras-ocr` has a simple method for this for English, but anything that generates strings of characters in your selected alphabet will do!
 
-The image generator generates `(image, sentence, lines)` tuples where `image` is a HxWx3 image, `sentence` is a string using only letters from the selected alphabet, and `lines` is a list of lines of text in the image where each line is itself a list of tuples of the form :code:`((x1, y1), (x2, y2), (x3, y3), (x4, y4), c)`. `c` is the character in the line and :code:`(x1, y2), (x2, y2), (x3, y3),
+The image generator generates `(image, lines)` tuples where `image` is a HxWx3 image and `lines` is a list of lines of text in the image where each line is itself a list of tuples of the form :code:`((x1, y1), (x2, y2), (x3, y3), (x4, y4), c)`. `c` is the character in the line and :code:`(x1, y2), (x2, y2), (x3, y3),
 (x4, y4)` define the bounding coordinates in clockwise order starting from the top left. You can replace this with your own generator, just be sure to match that function signature.
 
 We split our generators into train, validation, and test by separating the fonts and backgrounds used in each.
 
 .. code-block:: python
 
-    text_generator = keras_ocr.tools.get_text_generator(alphabet=alphabet)
+    text_generator = keras_ocr.data_generation.get_text_generator(alphabet=alphabet)
     print('The first generated text is:', next(text_generator))
 
     def get_train_val_test_split(arr):
-    train, valtest = sklearn.model_selection.train_test_split(arr, train_size=0.8, random_state=42)
-    val, test = sklearn.model_selection.train_test_split(valtest, train_size=0.5, random_state=42)
-    return train, val, test
+        train, valtest = sklearn.model_selection.train_test_split(arr, train_size=0.8, random_state=42)
+        val, test = sklearn.model_selection.train_test_split(valtest, train_size=0.5, random_state=42)
+        return train, val, test
 
     background_splits = get_train_val_test_split(backgrounds)
     font_splits = get_train_val_test_split(fonts)
 
     image_generators = [
-        keras_ocr.tools.get_image_generator(
-        height=640,
-        width=640,
-        text_generator=text_generator,
-        font_groups={
-            alphabet: current_fonts
-        },
-        backgrounds=current_backgrounds,
-        font_size=(60, 120),
-        margin=50,
-        rotationX=(-0.05, 0.05),
-        rotationY=(-0.05, 0.05),
-        rotationZ=(-15, 15),
+        keras_ocr.data_generation.get_image_generator(
+            height=640,
+            width=640,
+            text_generator=text_generator,
+            font_groups={
+                alphabet: current_fonts
+            },
+            backgrounds=current_backgrounds,
+            font_size=(60, 120),
+            margin=50,
+            rotationX=(-0.05, 0.05),
+            rotationY=(-0.05, 0.05),
+            rotationZ=(-15, 15)
         )  for current_fonts, current_backgrounds in zip(
             font_splits,
             background_splits
@@ -112,7 +117,8 @@ We split our generators into train, validation, and test by separating the fonts
     ]
 
     # See what the first validation image looks like.
-    image, text, lines = next(image_generators[1])
+    image, lines = next(image_generators[1])
+    text = keras_ocr.data_generation.convert_lines_to_paragraph(lines)
     print('The first generated validation image (below) contains:', text)
     plt.imshow(image)
 
@@ -137,7 +143,7 @@ Here we build our detector and recognizer models. For both, we'll start with pre
         include_top=False
     )
     for layer in recognizer.backbone.layers:
-    layer.trainable = False
+        layer.trainable = False
 
 We are now ready to train our text detector. Below we use some simple defaults.
 
@@ -145,9 +151,12 @@ We are now ready to train our text detector. Below we use some simple defaults.
 - Save the best weights.
 - For each epoch, iterate over all backgrounds one time.
 
-The `detector` object has a `get_batch_generator` method which converts the `image_generator` (which returns images and associated annotations) into a `batch_generator` that returns `X, y` pairs for training with `fit_generator`.
+The :code:`detector` object has a :code:`get_batch_generator` method which converts the :code:`image_generator`
+(which returns images and associated annotations) into a :code:`batch_generator` that returns
+:code:`X, y` pairs for training with :code:`fit_generator`.
 
-If training on Colab and it assigns you a K80, you can only use batch size 1. But if you get a T4 or P100, you can use larger batch sizes.
+If training on Colab and it assigns you a K80, you can only use batch size 1. But if you get a
+T4 or P100, you can use larger batch sizes.
 
 .. code-block:: python
 
@@ -155,8 +164,8 @@ If training on Colab and it assigns you a K80, you can only use batch size 1. Bu
     detector_basepath = os.path.join(data_dir, f'detector_{datetime.datetime.now().isoformat()}')
     detection_train_generator, detection_val_generator, detection_test_generator = [
         detector.get_batch_generator(
-        image_generator=image_generator,
-        batch_size=detector_batch_size
+            image_generator=image_generator,
+            batch_size=detector_batch_size
         ) for image_generator in image_generators
     ]
     detector.model.fit_generator(
@@ -173,28 +182,33 @@ If training on Colab and it assigns you a K80, you can only use batch size 1. Bu
         validation_steps=math.ceil(len(background_splits[1]) / detector_batch_size)
     )
 
-After training the text detector, we train the recognizer. Note that the recognizer expects images to already be cropped to single lines of text. :code:`keras-ocr` provides a convenience method for converting our existing generator into a single-line generator. So we perform that conversion.
+After training the text detector, we train the recognizer. Note that the recognizer expects images
+to already be cropped to single lines of text. :code:`keras-ocr` provides a convenience method for
+converting our existing generator into a single-line generator. So we perform that conversion.
 
 .. code-block:: python
 
     max_length = 10
-    recognition_image_generators = [keras_ocr.tools.convert_multiline_generator_to_single_line(
-        multiline_generator=image_generator,
-        max_string_length=min(recognizer.training_model.input_shape[1][1], max_length),
-        target_width=recognizer.model.input_shape[2],
-        target_height=recognizer.model.input_shape[1],
-        margin=1
-    ) for image_generator in image_generators]
+    recognition_image_generators = [
+        keras_ocr.data_generation.convert_image_generator_to_recognizer_input(
+            image_generator=image_generator,
+            max_string_length=min(recognizer.training_model.input_shape[1][1], max_length),
+            target_width=recognizer.model.input_shape[2],
+            target_height=recognizer.model.input_shape[1],
+            margin=1
+        ) for image_generator in image_generators
+    ]
 
     # See what the first validation image for recognition training looks like.
-    image, text, lines = next(recognition_image_generators[1])
+    image, text = next(recognition_image_generators[1])
     print('This image contains:', text)
     plt.imshow(image)
 
 .. image:: ../_static/generated2.jpg
    :width: 384
 
-Just like the :code:`detector`, the :code:`recognizer` has a method for converting the image generator into a :code:`batch_generator` that Keras' :code:`fit_generator` can use.
+Just like the :code:`detector`, the :code:`recognizer` has a method for converting the image generator
+into a :code:`batch_generator` that Keras' :code:`fit_generator` can use.
 
 We use the same callbacks for early stopping and logging as before.
 
@@ -214,16 +228,16 @@ We use the same callbacks for early stopping and logging as before.
         epochs=1000,
         steps_per_epoch=math.ceil(len(background_splits[0]) / recognition_batch_size),
         callbacks=[
-        tf.keras.callbacks.EarlyStopping(restore_best_weights=True, patience=25),
-        tf.keras.callbacks.CSVLogger(f'{recognizer_basepath}.csv', append=True),
-        tf.keras.callbacks.ModelCheckpoint(filepath=f'{recognizer_basepath}.h5')
+            tf.keras.callbacks.EarlyStopping(restore_best_weights=True, patience=25),
+            tf.keras.callbacks.CSVLogger(f'{recognizer_basepath}.csv', append=True),
+            tf.keras.callbacks.ModelCheckpoint(filepath=f'{recognizer_basepath}.h5')
         ],
         validation_data=recognition_val_generator,
         validation_steps=math.ceil(len(background_splits[1]) / recognition_batch_size),
         workers=0
     )
 
-Once training is done, you can use recognize to extract text.
+Once training is done, you can use :code:`recognize` to extract text.
 
 .. code-block:: python
 

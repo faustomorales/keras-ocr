@@ -316,7 +316,10 @@ class Recognizer:
 
     def get_batch_generator(self, image_generator, batch_size=8, lowercase=False):
         """
-        Generate batches of training data.
+        Generate batches of training data from an image generator. The generator
+        should yield tuples of (image, sentence) where image contains a single
+        line of text and sentence is a string representing the contents of
+        the image.
 
         Args:
             image_generator: An image / sentence tuple generator. The images should
@@ -334,13 +337,12 @@ class Recognizer:
             batch = [data for data, _ in zip(image_generator, range(batch_size))]
             if not self.model.input_shape[-1] == 3:
                 images = [
-                    cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)[..., np.newaxis]
-                    for image, _, _ in batch
+                    cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)[..., np.newaxis] for image, _ in batch
                 ]
             else:
-                images = [image for image, _, _ in batch]
+                images = [image for image, _ in batch]
             images = np.array([image.astype('float32') / 255 for image in images])
-            sentences = [sentence.strip() for _, sentence, _ in batch]
+            sentences = [sentence.strip() for _, sentence in batch]
             if lowercase:
                 sentences = [sentence.lower() for sentence in sentences]
             assert all(c in self.alphabet

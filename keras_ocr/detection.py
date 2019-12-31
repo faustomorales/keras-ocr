@@ -1,4 +1,4 @@
-# pylint: disable=invalid-name,too-many-locals,no-else-raise,no-self-use,too-many-statements,stop-iteration-return,import-outside-toplevel
+# pylint: disable=invalid-name,too-many-locals,no-else-raise,too-many-arguments,no-self-use,too-many-statements,stop-iteration-return,import-outside-toplevel
 import typing
 
 # The PyTorch portions of this code are subject to the following copyright notice.
@@ -586,7 +586,7 @@ class Detector:
         while True:
             batch = [next(image_generator) for n in range(batch_size)]
             images = np.array([entry[0] for entry in batch])
-            line_groups = [entry[2] for entry in batch]
+            line_groups = [entry[1] for entry in batch]
             X = compute_input(images)
             # pylint: disable=unsubscriptable-object
             y = np.array([

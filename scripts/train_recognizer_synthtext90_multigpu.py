@@ -65,7 +65,7 @@ def get_image_generator(filepaths, augmenter, width, height):
             image = augmenter.augment_image(image)
         if filepath == filepaths[-1]:
             random.shuffle(filepaths)
-        yield image, text, None
+        yield image, text
 
 
 if __name__ == '__main__':
