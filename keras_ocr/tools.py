@@ -28,8 +28,17 @@ def read(filepath_or_image: typing.Union[str, np.ndarray]):
 
 
 def warpBox(image, box, target_height, target_width, margin=0):
-    """Warp a box given by a set of four points into
-    a specific shape."""
+    """Warp a boxed region in an image given by a set of four points into
+    a rectangle with a specified width and height. Useful for taking crops
+    of distorted or rotated text.
+
+    Args:
+        image: The image from which to take the box
+        box: A list of four points starting in the top left
+            corner and moving clockwise.
+        target_height: The height of the output rectangle
+        target_width: The width of the output rectangle
+    """
     _, _, w, h = cv2.boundingRect(box)
     scale = min(target_width / w, target_height / h)
     M = cv2.getPerspectiveTransform(src=box,
@@ -118,6 +127,17 @@ def sha256sum(filename):
 
 
 def download_and_verify(url, sha256=None, cache_dir=None, verbose=True):
+    """Download a file to a cache directory and verify it with a sha256
+    hash.
+
+    Args:
+        url: The file to download
+        sha256: The sha256 hash to check. If the file already exists and the hash
+            matches, we don't download it again.
+        cache_dir: The directory in which to cache the file. The default is
+            `~/.keras-ocr`.
+        verbose: Whether to log progress
+    """
     if cache_dir is None:
         cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
     filename = os.path.basename(urllib.parse.urlparse(url).path)

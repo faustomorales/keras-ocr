@@ -10,7 +10,7 @@ containing images, each of which has a single word in it. The labels are in a te
 file called :code:`gt.txt`.
 
 An interactive version of this example on Google Colab is provided `here
-<https://colab.research.google.com/drive/19dGKong-LraUG3wYlJuPCquemJ13NN8R>`_.
+<https://colab.research.google.com/drive/1GeGA_bvh1TCgYNJSkWTWt00CEwaD_Ocl>`_.
 
 .. code-block:: python
 
@@ -156,7 +156,7 @@ As a sanity check, we show one of the samples.
     print('text:', text)
     plt.imshow(image)
 
-.. image:: ../_static/borndigital1.jpg
+.. image:: ../_static/borndigital1.png
    :width: 256
 
 Now we can run training.
@@ -186,5 +186,5 @@ Finally, run inference on a test sample.
     print(f'Predicted: {predicted}, Actual: {actual}')
     _ = plt.imshow(keras_ocr.tools.read(image_filepath))
 
-.. image:: ../_static/borndigital2.jpg
+.. image:: ../_static/borndigital2.png
    :width: 256
