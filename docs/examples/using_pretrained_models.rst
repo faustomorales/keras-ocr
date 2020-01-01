@@ -11,20 +11,16 @@ The below example shows how to use the pretrained models.
 
     # keras-ocr will automatically download pretrained
     # weights for the detector and recognizer.
-    detector = keras_ocr.detection.Detector()
-    recognizer = keras_ocr.recognition.Recognizer()
+    pipeline = keras_ocr.pipeline.Pipeline()
 
     image = keras_ocr.tools.read('tests/test_image.jpg')
 
-    # Boxes will be an Nx4x2 array of box quadrangles
-    # where N is the number of detected text boxes.
-    # Predictions is a list of (string, box) tuples.
-    boxes = detector.detect(images=[image])[0]
-    predictions = recognizer.recognize_from_boxes(image=image, boxes=boxes)
+    # Predictions is a list of (text, box) tuples.
+    predictions = pipeline.recognize(image=image)
 
     # Plot the results.
     fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(10, 10))
-    canvas = keras_ocr.detection.drawBoxes(image, boxes)
+    canvas = keras_ocr.detection.drawBoxes(image, [box for text, box in predictions])
     ax1.imshow(image)
     ax2.imshow(canvas)
 
