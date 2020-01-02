@@ -126,7 +126,7 @@ def sha256sum(filename):
     return h.hexdigest()
 
 
-def download_and_verify(url, sha256=None, cache_dir=None, verbose=True):
+def download_and_verify(url, sha256=None, cache_dir=None, verbose=True, filename=None):
     """Download a file to a cache directory and verify it with a sha256
     hash.
 
@@ -137,10 +137,13 @@ def download_and_verify(url, sha256=None, cache_dir=None, verbose=True):
         cache_dir: The directory in which to cache the file. The default is
             `~/.keras-ocr`.
         verbose: Whether to log progress
+        filename: The filename to use for the file. By default, the filename is
+            derived from the URL.
     """
     if cache_dir is None:
         cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
-    filename = os.path.basename(urllib.parse.urlparse(url).path)
+    if filename is None:
+        filename = os.path.basename(urllib.parse.urlparse(url).path)
     filepath = os.path.join(cache_dir, filename)
     os.makedirs(os.path.split(filepath)[0], exist_ok=True)
     if verbose:
