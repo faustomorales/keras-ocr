@@ -1,5 +1,6 @@
 # pylint: disable=invalid-name,too-many-branches,too-many-statements
 import os
+import io
 import typing
 import hashlib
 import urllib.request
@@ -7,24 +8,28 @@ import urllib.parse
 
 import cv2
 import numpy as np
+import validators
 
 
-def read(filepath_or_image: typing.Union[str, np.ndarray]):
-    """Read an image from disk.
+def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
+    """Read a file into an image object
 
     Args:
-        filepath: The path to the image
-
-    Returns:
-        The new image
+        filepath_or_buffer: The path to the file, a URL, or any object
+            with a `read` method (such as `io.BytesIO`)
     """
-    if not isinstance(filepath_or_image, str):
-        return filepath_or_image
-    image = cv2.imread(filepath_or_image)
-    if image is None:
-        raise Exception(f'Could not read {filepath_or_image}.')
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    return image
+    if isinstance(filepath_or_buffer, np.ndarray):
+        return filepath_or_buffer
+    if hasattr(filepath_or_buffer, 'read'):
+        image = np.asarray(bytearray(filepath_or_buffer.read()), dtype=np.uint8)
+        image = cv2.imdecode(image, cv2.IMREAD_UNCHANGED)
+    elif isinstance(filepath_or_buffer, str):
+        if validators.url(filepath_or_buffer):
+            return read(urllib.request.urlopen(filepath_or_buffer))
+        assert os.path.isfile(filepath_or_buffer), \
+            'Could not find image at path: ' + filepath_or_buffer
+        image = cv2.imread(filepath_or_buffer)
+    return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
 def warpBox(image, box, target_height, target_width, margin=0):
