@@ -56,7 +56,8 @@ def warpBox(image, box, target_height, target_width, margin=0):
     return full
 
 
-def fit(image, width: int, height: int, cval: int = 255, mode='letterbox'):
+# pylint: disable=too-many-arguments
+def fit(image, width: int, height: int, cval: int = 255, mode='letterbox', return_scale=False):
     """Obtain a new image, fit to the specified size.
 
     Args:
@@ -65,36 +66,37 @@ def fit(image, width: int, height: int, cval: int = 255, mode='letterbox'):
         height: The new height
         cval: The constant value to use to fill the remaining areas of
             the image
+        return_scale: Whether to return the scale used for the image
 
     Returns:
         The new image
     """
+    fitted = None
     if width == image.shape[1] and height == image.shape[0]:
-        return image
-    if mode == 'letterbox':
-        if width / image.shape[1] <= height / image.shape[0]:
-            resize_width = width
-            resize_height = (width / image.shape[1]) * image.shape[0]
-        else:
-            resize_height = height
-            resize_width = (height / image.shape[0]) * image.shape[1]
-        resize_width, resize_height = map(int, [resize_width, resize_height])
-        fitted = np.zeros((height, width, 3), dtype='uint8') + cval
-        image = cv2.resize(image, dsize=(resize_width, resize_height))
-        fitted[:image.shape[0], :image.shape[1]] = image[:height, :width]
-    elif mode == 'crop':
-        if width / image.shape[1] >= height / image.shape[0]:
-            resize_width = width
-            resize_height = (width / image.shape[1]) * image.shape[0]
-        else:
-            resize_height = height
-            resize_width = (height / image.shape[0]) * image.shape[1]
-        resize_width, resize_height = map(int, [resize_width, resize_height])
-        image = cv2.resize(image, dsize=(resize_width, resize_height))
-        fitted = image[:height, :width]
+        fitted = image
+        scale = 1
+    elif width / image.shape[1] >= height / image.shape[0]:
+        scale = width / image.shape[1]
+        resize_width = width
+        resize_height = (width / image.shape[1]) * image.shape[0]
     else:
-        raise NotImplementedError
-    return fitted
+        scale = height / image.shape[0]
+        resize_height = height
+        resize_width = scale * image.shape[1]
+    if fitted is None:
+        resize_width, resize_height = map(int, [resize_width, resize_height])
+        if mode == 'letterbox':
+            fitted = np.zeros((height, width, 3), dtype='uint8') + cval
+            image = cv2.resize(image, dsize=(resize_width, resize_height))
+            fitted[:image.shape[0], :image.shape[1]] = image[:height, :width]
+        elif mode == 'crop':
+            image = cv2.resize(image, dsize=(resize_width, resize_height))
+            fitted = image[:height, :width]
+        else:
+            raise NotImplementedError(f'Unknown mode: {mode}')
+    if not return_scale:
+        return fitted
+    return fitted, scale
 
 
 def read_and_fit(filepath_or_array: typing.Union[str, np.ndarray],
