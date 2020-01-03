@@ -5,7 +5,7 @@ Examples
    :maxdepth: 2
    :caption: Contents:
 
-   end_to_end_training
    using_pretrained_models
+   end_to_end_training
    fine_tuning_detector
    fine_tuning_recognizer
