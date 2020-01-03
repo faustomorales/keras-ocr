@@ -98,6 +98,26 @@ def drawBoxes(image, boxes, color=(255, 0, 0), thickness=5, boxes_format='boxes'
     return canvas
 
 
+def adjust_boxes(boxes, boxes_format='boxes', scale=1):
+    """Adjust boxes using a given scale and offset.
+
+    Args:
+        boxes: The boxes to adjust
+        boxes_format: The format for the boxes. See the `drawBoxes` function
+            for an explanation on the options.
+        scale: The scale to apply
+    """
+    if scale == 1:
+        return boxes
+    if boxes_format == 'boxes':
+        return np.array(boxes) * scale
+    if boxes_format == 'lines':
+        return [[(np.array(box) * scale, character) for box, character in line] for line in boxes]
+    if boxes_format == 'predictions':
+        return [(word, np.array(box) * scale) for word, box in boxes]
+    raise NotImplementedError(f'Unsupported boxes format: {boxes_format}')
+
+
 def augment(boxes,
             augmenter: imgaug.augmenters.meta.Augmenter,
             image=None,
