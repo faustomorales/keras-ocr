@@ -35,7 +35,7 @@ An interactive version of this example on Google Colab is provided `here
     test_dir = './test'
     if not os.path.isdir(training_dir):
         training_zip_path = keras_ocr.tools.download_and_verify(
-            url='https://storage.googleapis.com/keras-ocr/Challenge1_Training_Task3_Images_GT.zip',
+            url='https://storage.googleapis.com/keras-ocr/borndigital/Challenge1_Training_Task3_Images_GT.zip',
             cache_dir=data_dir,
             sha256='8ede0639f5a8031d584afd98cee893d1c5275d7f17863afc2cba24b13c932b07'
         )
@@ -43,14 +43,14 @@ An interactive version of this example on Google Colab is provided `here
             zfile.extractall(training_dir) 
     if not os.path.isdir(test_dir):
         test_zip_path = keras_ocr.tools.download_and_verify(
-            url='https://storage.googleapis.com/keras-ocr/Challenge1_Test_Task3_Images.zip',
+            url='https://storage.googleapis.com/keras-ocr/borndigital/Challenge1_Test_Task3_Images.zip',
             cache_dir=data_dir,
             sha256='8f781b0140fd0bac3750530f0924bce5db3341fd314a2fcbe9e0b6ca409a77f0'
         )
         with zipfile.ZipFile(test_zip_path) as zfile:
             zfile.extractall(test_dir)
     test_gt_path = keras_ocr.tools.download_and_verify(
-        url='https://storage.googleapis.com/keras-ocr/Challenge1_Test_Task3_GT.txt',
+        url='https://storage.googleapis.com/keras-ocr/borndigital/Challenge1_Test_Task3_GT.txt',
         cache_dir=data_dir,
         sha256='fce7f1228b7c4c26a59f13f562085148acf063d6690ce51afc395e0a1aabf8be'
     )
