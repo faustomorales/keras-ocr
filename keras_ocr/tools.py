@@ -172,7 +172,7 @@ def fit(image, width: int, height: int, cval: int = 255, mode='letterbox', retur
     if width == image.shape[1] and height == image.shape[0]:
         fitted = image
         scale = 1
-    elif width / image.shape[1] >= height / image.shape[0]:
+    elif width / image.shape[1] <= height / image.shape[0]:
         scale = width / image.shape[1]
         resize_width = width
         resize_height = (width / image.shape[1]) * image.shape[0]
