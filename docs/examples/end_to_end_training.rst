@@ -243,7 +243,7 @@ Once training is done, you can use :code:`recognize` to extract text.
 
     image, text, lines = next(image_generators[0])
     boxes = detector.detect(images=[image])[0]
-    drawn = keras_ocr.detection.drawBoxes(image=image, boxes=boxes)
+    drawn = keras_ocr.tools.drawBoxes(image=image, boxes=boxes)
     predictions = recognizer.recognize_from_boxes(boxes=boxes, image=image)
     print(text, [text for text, box in predictions])
     plt.imshow(drawn)

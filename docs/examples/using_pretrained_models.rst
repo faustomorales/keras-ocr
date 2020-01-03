@@ -20,7 +20,7 @@ The below example shows how to use the pretrained models.
 
     # Plot the results.
     fig, ax = plt.subplots()
-    ax.imshow(keras_ocr.detection.drawBoxes(image, predictions, boxes_format='predictions'))
+    ax.imshow(keras_ocr.tools.drawBoxes(image, predictions, boxes_format='predictions'))
     for text, box in predictions:
         ax.annotate(s=text, xy=box[0], xytext=box[0] - 50, arrowprops={'arrowstyle': '->'})
 

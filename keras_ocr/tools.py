@@ -7,6 +7,7 @@ import urllib.request
 import urllib.parse
 
 import cv2
+import imgaug
 import numpy as np
 import validators
 
@@ -56,6 +57,102 @@ def warpBox(image, box, target_height, target_width, margin=0):
     return full
 
 
+def drawBoxes(image, boxes, color=(255, 0, 0), thickness=5, boxes_format='boxes'):
+    """Draw boxes onto an image.
+
+    Args:
+        image: The image on which to draw the boxes.
+        boxes: The boxes to draw.
+        color: The color for each box.
+        thickness: The thickness for each box.
+        boxes_format: The format used for providing the boxes. Options are
+            "boxes" which indicates an array with shape(N, 4, 2) where N is the
+            number of boxes and each box is a list of four points) as provided
+            by `keras_ocr.detection.Detector.detect`, "lines" (a list of
+            lines where each line itself is a list of (box, character) tuples) as
+            provided by `keras_ocr.data_generation.get_image_generator`,
+            or "predictions" where boxes is by itself a list of (word, box) tuples
+            as provided by `keras_ocr.pipeline.Pipeline.recognize` or
+            `keras_ocr.recognition.Recognizer.recognize_from_boxes`.
+    """
+    if len(boxes) == 0:
+        return image
+    canvas = image.copy()
+    if boxes_format == 'lines':
+        revised_boxes = []
+        for line in boxes:
+            for box, _ in line:
+                revised_boxes.append(box)
+        boxes = revised_boxes
+    if boxes_format == 'predictions':
+        revised_boxes = []
+        for _, box in boxes:
+            revised_boxes.append(box)
+        boxes = revised_boxes
+    for box in boxes:
+        cv2.polylines(img=canvas,
+                      pts=box[np.newaxis].astype('int32'),
+                      color=color,
+                      thickness=thickness,
+                      isClosed=True)
+    return canvas
+
+
+def augment(boxes,
+            augmenter: imgaug.augmenters.meta.Augmenter,
+            image=None,
+            boxes_format='boxes',
+            image_shape=None):
+    """Augment an image and associated boxes together.
+
+    Args:
+        image: The image which we wish to apply the augmentation.
+        boxes: The boxes that will be augmented together with the image
+        boxes_format: The format for the boxes. See the `drawBoxes` function
+            for an explanation on the options.
+        image_shape: The shape of the input image if no image will be provided.
+    """
+    if image is None and image_shape is None:
+        raise ValueError('One of "image" or "image_shape" must be provided.')
+    augmenter = augmenter.to_deterministic()
+
+    if image is not None:
+        image_augmented = augmenter(image=image)
+        image_shape = image.shape[:2]
+        image_augmented_shape = image_augmented.shape[:2]
+    else:
+        image_augmented = None
+        width_augmented, height_augmented = augmenter.augment_keypoints(
+            imgaug.KeypointsOnImage.from_xy_array(xy=[[image_shape[1], image_shape[0]]],
+                                                  shape=image_shape)).to_xy_array()[0]
+        image_augmented_shape = (height_augmented, width_augmented)
+
+    def box_inside_augmented_image(box):
+        return (box >= 0).all() and (box[:, 0] <= image_augmented_shape[1]).all() and (
+            box[:, 1] <= image_augmented_shape[0]).all()
+
+    def augment_box(box):
+        return augmenter.augment_keypoints(
+            imgaug.KeypointsOnImage.from_xy_array(box, shape=image_shape)).to_xy_array()
+
+    if boxes_format == 'boxes':
+        boxes_augmented = [
+            box for box in map(augment_box, boxes) if box_inside_augmented_image(box)
+        ]
+    elif boxes_format == 'lines':
+        boxes_augmented = [[(augment_box(box), character) for box, character in line]
+                           for line in boxes]
+        boxes_augmented = [[(box, character) for box, character in line
+                            if box_inside_augmented_image(box)] for line in boxes_augmented]
+    elif boxes_format == 'predictions':
+        boxes_augmented = [(word, augment_box(box)) for word, box in boxes]
+        boxes_augmented = [(word, box) for word, box in boxes_augmented
+                           if box_inside_augmented_image(box)]
+    else:
+        raise NotImplementedError(f'Unsupported boxes format: {boxes_format}')
+    return image_augmented, boxes_augmented
+
+
 # pylint: disable=too-many-arguments
 def fit(image, width: int, height: int, cval: int = 255, mode='letterbox', return_scale=False):
     """Obtain a new image, fit to the specified size.
@@ -93,7 +190,7 @@ def fit(image, width: int, height: int, cval: int = 255, mode='letterbox', retur
             image = cv2.resize(image, dsize=(resize_width, resize_height))
             fitted = image[:height, :width]
         else:
-            raise NotImplementedError(f'Unknown mode: {mode}')
+            raise NotImplementedError(f'Unsupported mode: {mode}')
     if not return_scale:
         return fitted
     return fitted, scale
