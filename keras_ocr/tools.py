@@ -1,4 +1,4 @@
-# pylint: disable=invalid-name,too-many-branches,too-many-statements
+# pylint: disable=invalid-name,too-many-branches,too-many-statements,too-many-arguments
 import os
 import io
 import typing
@@ -10,6 +10,8 @@ import cv2
 import imgaug
 import numpy as np
 import validators
+from shapely import geometry
+from scipy import spatial
 
 
 def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
@@ -33,7 +35,7 @@ def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
-def warpBox(image, box, target_height, target_width, margin=0):
+def warpBox(image, box, target_height, target_width, margin=0, cval=(0, 0, 0)):
     """Warp a boxed region in an image given by a set of four points into
     a rectangle with a specified width and height. Useful for taking crops
     of distorted or rotated text.
@@ -45,6 +47,7 @@ def warpBox(image, box, target_height, target_width, margin=0):
         target_height: The height of the output rectangle
         target_width: The width of the output rectangle
     """
+    box, _ = get_rotated_box(box)
     _, _, w, h = cv2.boundingRect(box)
     scale = min(target_width / w, target_height / h)
     M = cv2.getPerspectiveTransform(src=box,
@@ -52,7 +55,7 @@ def warpBox(image, box, target_height, target_width, margin=0):
                                                   [scale * w - margin, scale * h - margin],
                                                   [margin, scale * h - margin]]).astype('float32'))
     crop = cv2.warpPerspective(image, M, dsize=(int(scale * w), int(scale * h)))
-    full = np.zeros((target_height, target_width, 3)).astype('uint8')
+    full = np.zeros((target_height, target_width, 3)).astype('uint8') + cval
     full[:crop.shape[0], :crop.shape[1]] = crop
     return full
 
@@ -278,3 +281,51 @@ def download_and_verify(url, sha256=None, cache_dir=None, verbose=True, filename
         urllib.request.urlretrieve(url, filepath)
     assert sha256 is None or sha256 == sha256sum(filepath), 'Error occurred verifying sha256.'
     return filepath
+
+
+# pylint: disable=bad-continuation
+def get_rotated_box(
+    points
+) -> typing.Tuple[typing.Tuple[float, float], typing.Tuple[float, float], typing.Tuple[
+        float, float], typing.Tuple[float, float], float]:
+    """Obtain the parameters of a rotated box.
+
+    Returns:
+        The vertices of the rotated box in top-left,
+        top-right, bottom-right, bottom-left order along
+        with the angle of rotation about the bottom left corner.
+    """
+    mp = geometry.MultiPoint(points=points)
+    pts = np.array(list(zip(*mp.minimum_rotated_rectangle.exterior.xy)))[:-1]  # noqa: E501
+
+    # The code below is taken from
+    # https://github.com/jrosebr1/imutils/blob/master/imutils/perspective.py
+
+    # sort the points based on their x-coordinates
+    xSorted = pts[np.argsort(pts[:, 0]), :]
+
+    # grab the left-most and right-most points from the sorted
+    # x-roodinate points
+    leftMost = xSorted[:2, :]
+    rightMost = xSorted[2:, :]
+
+    # now, sort the left-most coordinates according to their
+    # y-coordinates so we can grab the top-left and bottom-left
+    # points, respectively
+    leftMost = leftMost[np.argsort(leftMost[:, 1]), :]
+    (tl, bl) = leftMost
+
+    # now that we have the top-left coordinate, use it as an
+    # anchor to calculate the Euclidean distance between the
+    # top-left and right-most points; by the Pythagorean
+    # theorem, the point with the largest distance will be
+    # our bottom-right point
+    D = spatial.distance.cdist(tl[np.newaxis], rightMost, "euclidean")[0]
+    (br, tr) = rightMost[np.argsort(D)[::-1], :]
+
+    # return the coordinates in top-left, top-right,
+    # bottom-right, and bottom-left order
+    pts = np.array([tl, tr, br, bl], dtype="float32")
+
+    rotation = np.arctan((tl[0] - bl[0]) / (tl[1] - bl[1]))
+    return pts, rotation
