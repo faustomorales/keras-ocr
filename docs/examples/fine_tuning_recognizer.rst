@@ -1,5 +1,5 @@
-Fine-tuning recognizer
-======================
+Fine-tuning the recognizer
+==========================
 
 This example shows how to fine-tune the recognizer using an existing dataset. In this case,
 we will use the "Born Digital" dataset from https://rrc.cvc.uab.es/?ch=1&com=downloads
@@ -102,8 +102,8 @@ Now we can run training.
 
     callbacks = [
         tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=10, restore_best_weights=False),
-        tf.keras.callbacks.ModelCheckpoint(os.path.join(data_dir, 'recognizer_borndigital.h5'), monitor='val_loss', save_best_only=True),
-        tf.keras.callbacks.CSVLogger(os.path.join(data_dir, 'recognizer_borndigital.csv'))
+        tf.keras.callbacks.ModelCheckpoint('recognizer_borndigital.h5', monitor='val_loss', save_best_only=True),
+        tf.keras.callbacks.CSVLogger('recognizer_borndigital.csv')
     ]
     recognizer.training_model.fit_generator(
         generator=training_gen,

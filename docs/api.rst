@@ -30,3 +30,13 @@ reading images and downloading data.
 
 .. automodule:: keras_ocr.tools
         :members:
+
+Datasets
+********
+
+The :code:`datasets` module contains functions for using data
+from public datasets. See the :doc:`fine-tuning detector <examples/fine_tuning_detector>`
+and :doc:`fine-tuning recognizer <examples/fine_tuning_recognizer>` examples. 
+
+.. automodule:: keras_ocr.datasets
+        :members:

@@ -25,6 +25,7 @@ import typing
 import cv2
 import numpy as np
 import tensorflow as tf
+import efficientnet.tfkeras as efficientnet
 from tensorflow import keras
 
 from . import tools
@@ -245,8 +246,7 @@ class UpsampleLike(keras.layers.Layer):
             return (input_shape[0][0], ) + input_shape[1][1:3] + (input_shape[0][-1], )
 
 
-def build_keras_model(weights_path: str = None):
-    inputs = keras.layers.Input((None, None, 3))
+def build_vgg_backbone(inputs):
     x = make_vgg_block(inputs, filters=64, n=0, pooling=False, prefix='basenet.slice1')
     x = make_vgg_block(x, filters=64, n=3, pooling=True, prefix='basenet.slice1')
     x = make_vgg_block(x, filters=128, n=7, pooling=False, prefix='basenet.slice1')
@@ -261,12 +261,39 @@ def build_keras_model(weights_path: str = None):
     x = make_vgg_block(x, filters=512, n=37, pooling=False, prefix='basenet.slice4')
     x = make_vgg_block(x, filters=512, n=40, pooling=True, prefix='basenet.slice4')
     vgg = keras.models.Model(inputs=inputs, outputs=x)
+    return [
+        vgg.get_layer(slice_name).output for slice_name in [
+            'basenet.slice1.12',
+            'basenet.slice2.19',
+            'basenet.slice3.29',
+            'basenet.slice4.38',
+        ]
+    ]
 
-    # slice1 is 11, slice2 is 18, slice3 is 28, slice4 is 38
-    s1 = vgg.get_layer('basenet.slice1.12').output
-    s2 = vgg.get_layer('basenet.slice2.19').output
-    s3 = vgg.get_layer('basenet.slice3.29').output
-    s4 = vgg.get_layer('basenet.slice4.38').output
+
+def build_efficientnet_backbone(inputs, backbone_name, imagenet):
+    backbone = getattr(efficientnet, backbone_name)(include_top=False,
+                                                    input_tensor=inputs,
+                                                    weights='imagenet' if imagenet else None)
+    return [
+        backbone.get_layer(slice_name).output for slice_name in [
+            'block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation',
+            'block5a_expand_activation'
+        ]
+    ]
+
+
+def build_keras_model(weights_path: str = None, backbone_name='vgg'):
+    inputs = keras.layers.Input((None, None, 3))
+
+    if backbone_name == 'vgg':
+        s1, s2, s3, s4 = build_vgg_backbone(inputs)
+    elif 'efficientnet' in backbone_name.lower():
+        s1, s2, s3, s4 = build_efficientnet_backbone(inputs=inputs,
+                                                     backbone_name=backbone_name,
+                                                     imagenet=weights_path is None)
+    else:
+        raise NotImplementedError
 
     s5 = keras.layers.MaxPooling2D(pool_size=3, strides=1, padding='same',
                                    name='basenet.slice5.0')(s4)
@@ -314,6 +341,7 @@ def build_keras_model(weights_path: str = None):
         if weights_path.endswith('.h5'):
             model.load_weights(weights_path)
         elif weights_path.endswith('.pth'):
+            assert backbone_name == 'vgg', 'PyTorch weights only allowed with VGG backbone.'
             load_torch_weights(model=model, weights_path=weights_path)
         else:
             raise NotImplementedError(f'Cannot load weights from {weights_path}')
@@ -541,10 +569,16 @@ class Detector:
             is supported.
         load_from_torch: Whether to load the weights from the original PyTorch weights.
         optimizer: The optimizer to use for training the model.
+        backbone_name: The backbone to use. Currently, only 'vgg' is supported.
     """
-    def __init__(self, weights='clovaai_general', load_from_torch=False, optimizer='adam'):
+    def __init__(self,
+                 weights='clovaai_general',
+                 load_from_torch=False,
+                 optimizer='adam',
+                 backbone_name='vgg'):
         if weights is not None:
             pretrained_key = (weights, load_from_torch)
+            assert backbone_name == 'vgg', 'Pretrained weights available only for VGG.'
             assert pretrained_key in PRETRAINED_WEIGHTS, \
                 'Selected weights configuration not found.'
             weights_config = PRETRAINED_WEIGHTS[pretrained_key]
@@ -552,7 +586,7 @@ class Detector:
                                                      sha256=weights_config['sha256'])
         else:
             weights_path = None
-        self.model = build_keras_model(weights_path=weights_path)
+        self.model = build_keras_model(weights_path=weights_path, backbone_name=backbone_name)
         self.model.compile(loss='mse', optimizer=optimizer)
 
     def get_batch_generator(self,
