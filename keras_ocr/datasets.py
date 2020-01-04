@@ -3,6 +3,7 @@ import concurrent
 import itertools
 import zipfile
 import random
+import glob
 import json
 import os
 
@@ -140,6 +141,63 @@ def get_born_digital_recognizer_dataset(split='train', cache_dir=None):
         data.extend(
             _read_born_digital_labels_file(labels_filepath=test_gt_path, image_folder=test_dir))
     return data
+
+
+def get_icdar_2013_detector_dataset(cache_dir=None, skip_illegible=False):
+    """Get the ICDAR 2013 text segmentation dataset for detector
+    training. Only the training set has the necessary annotations.
+    For the test set, only segmentation maps are provided, which
+    do not provide the necessary information for affinity scores.
+
+    Args:
+        cache_dir: The directory in which to store the data.
+        skip_illegible: Whether to skip illegible characters.
+
+    Returns:
+        Lists of (image_path, lines, confidence) tuples. Confidence
+        is always 1 for this dataset. We record confidence to allow
+        for future support for weakly supervised cases.
+    """
+    if cache_dir is None:
+        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+    main_dir = os.path.join(cache_dir, 'icdar2013')
+    training_images_dir = os.path.join(main_dir, 'Challenge2_Training_Task12_Images')
+    training_zip_images_path = tools.download_and_verify(
+        url=
+        'https://storage.googleapis.com/keras-ocr/icdar2013/Challenge2_Training_Task12_Images.zip',  # pylint: disable=line-too-long
+        cache_dir=main_dir,
+        sha256='7a57d1699fbb92db3ad82c930202938562edaf72e1c422ddd923860d8ace8ded')
+    with zipfile.ZipFile(training_zip_images_path) as zfile:
+        zfile.extractall(training_images_dir)
+    training_gt_dir = os.path.join(main_dir, 'Challenge2_Training_Task2_GT')
+    training_zip_gt_path = tools.download_and_verify(
+        url='https://storage.googleapis.com/keras-ocr/icdar2013/Challenge2_Training_Task2_GT.zip',  # pylint: disable=line-too-long
+        cache_dir=main_dir,
+        sha256='4cedd5b1e33dc4354058f5967221ac85dbdf91a99b30f3ab1ecdf42786a9d027')
+    with zipfile.ZipFile(training_zip_gt_path) as zfile:
+        zfile.extractall(training_gt_dir)
+
+    dataset = []
+    for gt_filepath in glob.glob(os.path.join(training_gt_dir, '*.txt')):
+        image_id = os.path.split(gt_filepath)[1].split('_')[0]
+        image_path = os.path.join(training_images_dir, image_id + '.jpg')
+        lines = []
+        with open(gt_filepath, 'r') as f:
+            current_line = []
+            for row in f.read().split('\n'):
+                if row == '':
+                    lines.append(current_line)
+                    current_line = []
+                else:
+                    row = row.split(' ')[5:]
+                    character = row[-1][1:-1]
+                    if character == '' and skip_illegible:
+                        continue
+                    x1, y1, x2, y2 = map(int, row[:4])
+                    current_line.append((np.array([[x1, y1], [x2, y1], [x2, y2], [x1,
+                                                                                  y2]]), character))
+        dataset.append((image_path, lines, 1))
+    return dataset
 
 
 def get_recognizer_image_generator(labels, height, width, alphabet, augmenter=None):
