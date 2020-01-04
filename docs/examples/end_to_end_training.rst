@@ -145,6 +145,9 @@ Here we build our detector and recognizer models. For both, we'll start with pre
     for layer in recognizer.backbone.layers:
         layer.trainable = False
 
+Train the detector
+******************
+
 We are now ready to train our text detector. Below we use some simple defaults.
 
 - Run training until we have no improvement on the validation set for 5 epochs.
@@ -181,6 +184,9 @@ T4 or P100, you can use larger batch sizes.
         validation_data=detection_val_generator,
         validation_steps=math.ceil(len(background_splits[1]) / detector_batch_size)
     )
+
+Train the recognizer
+********************
 
 After training the text detector, we train the recognizer. Note that the recognizer expects images
 to already be cropped to single lines of text. :code:`keras-ocr` provides a convenience method for
@@ -237,15 +243,20 @@ We use the same callbacks for early stopping and logging as before.
         workers=0
     )
 
+Use the models for inference
+****************************
+
 Once training is done, you can use :code:`recognize` to extract text.
 
 .. code-block:: python
-
+    
+    pipeline = keras_ocr.pipelines.Pipeline(detector=detector, recognizer=recognizer)
     image, text, lines = next(image_generators[0])
-    boxes = detector.detect(images=[image])[0]
-    drawn = keras_ocr.tools.drawBoxes(image=image, boxes=boxes)
-    predictions = recognizer.recognize_from_boxes(boxes=boxes, image=image)
-    print(text, [text for text, box in predictions])
+    predictions = pipeline.recognize(image=image)
+    drawn = keras_ocr.tools.drawBoxes(
+        image=image, boxes=predictions, boxes_format='predictions'
+    )
+    print('Actual:', text, 'Predicted:', [text for text, box in predictions])
     plt.imshow(drawn)
 
 .. image:: ../_static/predicted1.jpg
