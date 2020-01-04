@@ -23,6 +23,7 @@ The below example shows how to use the pretrained models.
     ax.imshow(keras_ocr.tools.drawBoxes(image, predictions, boxes_format='predictions'))
     for text, box in predictions:
         ax.annotate(s=text, xy=box[0], xytext=box[0] - 50, arrowprops={'arrowstyle': '->'})
+    plt.show()
 
 .. image:: ../../tests/test_image_labeled.jpg
    :width: 512
