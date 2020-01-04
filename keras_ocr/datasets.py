@@ -143,6 +143,26 @@ def get_born_digital_recognizer_dataset(split='train', cache_dir=None):
     return data
 
 
+def get_icdar_2013_recognizer_dataset(cache_dir=None):
+    """Get a list of (filepath, box, word) tuples from the
+    ICDAR 2013 dataset.
+
+    Args:
+        cache_dir: The directory in which to cache the file. The default is
+            `~/.keras-ocr`.
+
+    Returns:
+        A recognition dataset as a list of (filepath, box, word) tuples
+    """
+    dataset = []
+    for image_path, lines, _ in get_icdar_2013_detector_dataset(cache_dir=cache_dir,
+                                                                skip_illegible=True):
+        for line in lines:
+            box, text = tools.combine_line(line)
+            dataset.append((image_path, box, text))
+    return dataset
+
+
 def get_icdar_2013_detector_dataset(cache_dir=None, skip_illegible=False):
     """Get the ICDAR 2013 text segmentation dataset for detector
     training. Only the training set has the necessary annotations.
@@ -196,8 +216,43 @@ def get_icdar_2013_detector_dataset(cache_dir=None, skip_illegible=False):
                     x1, y1, x2, y2 = map(int, row[:4])
                     current_line.append((np.array([[x1, y1], [x2, y1], [x2, y2], [x1,
                                                                                   y2]]), character))
+        # Some lines only have illegible characters and if skip_illegible is True,
+        # then these lines will be blank.
+        lines = [line for line in lines if line]
         dataset.append((image_path, lines, 1))
     return dataset
+
+
+def get_detector_image_generator(labels, width, height, augmenter=None):
+    """Generated augmented (image, lines) tuples from a list
+    of (filepath, lines, confidence) tuples. Confidence is
+    not used right now but is included for a future release
+    that uses semi-supervised data.
+
+    Args:
+        labels: A list of (image, lines, confience) tuples.
+        augmenter: An augmenter to apply to the images.
+        width: The width to use for output images
+        height: The height to use for output images
+    """
+    labels = labels.copy()
+    for index in itertools.cycle(range(len(labels))):
+        if index == 0:
+            random.shuffle(labels)
+        image_filepath, lines, _ = labels[index]
+        image = tools.read(image_filepath)
+        if augmenter is not None:
+            image, lines = tools.augment(boxes=lines,
+                                         boxes_format='lines',
+                                         image=image,
+                                         augmenter=augmenter)
+        image, scale = tools.fit(image,
+                                 width=width,
+                                 height=height,
+                                 mode='letterbox',
+                                 return_scale=True)
+        lines = tools.adjust_boxes(boxes=lines, boxes_format='lines', scale=scale)
+        yield image, lines
 
 
 def get_recognizer_image_generator(labels, height, width, alphabet, augmenter=None):
@@ -221,7 +276,6 @@ def get_recognizer_image_generator(labels, height, width, alphabet, augmenter=No
         filepath, box, text = labels[index]
         cval = cval = np.random.randint(low=0, high=255, size=3).astype('uint8')
         if box is not None:
-            print(box)
             image = tools.warpBox(image=tools.read(filepath),
                                   box=box.astype('float32'),
                                   target_height=height,

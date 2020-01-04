@@ -147,7 +147,8 @@ def augment(boxes,
             augmenter: imgaug.augmenters.meta.Augmenter,
             image=None,
             boxes_format='boxes',
-            image_shape=None):
+            image_shape=None,
+            area_threshold=0.5):
     """Augment an image and associated boxes together.
 
     Args:
@@ -156,6 +157,8 @@ def augment(boxes,
         boxes_format: The format for the boxes. See the `drawBoxes` function
             for an explanation on the options.
         image_shape: The shape of the input image if no image will be provided.
+        area_threshold: Fraction of bounding box that we require to be
+            in augmented image to include it.
     """
     if image is None and image_shape is None:
         raise ValueError('One of "image" or "image_shape" must be provided.')
@@ -172,9 +175,15 @@ def augment(boxes,
                                                   shape=image_shape)).to_xy_array()[0]
         image_augmented_shape = (height_augmented, width_augmented)
 
-    def box_inside_augmented_image(box):
-        return (box >= 0).all() and (box[:, 0] <= image_augmented_shape[1]).all() and (
-            box[:, 1] <= image_augmented_shape[0]).all()
+    def box_inside_image(box):
+        area_before = cv2.contourArea(np.int32(box)[:, np.newaxis, :])
+        if area_before == 0:
+            return False, box
+        clipped = box.copy()
+        clipped[:, 0] = clipped[:, 0].clip(0, image_augmented_shape[1])
+        clipped[:, 1] = clipped[:, 1].clip(0, image_augmented_shape[0])
+        area_after = cv2.contourArea(np.int32(clipped)[:, np.newaxis, :])
+        return (area_after / area_before) >= area_threshold, clipped
 
     def augment_box(box):
         return augmenter.augment_keypoints(
@@ -182,17 +191,23 @@ def augment(boxes,
 
     if boxes_format == 'boxes':
         boxes_augmented = [
-            box for box in map(augment_box, boxes) if box_inside_augmented_image(box)
+            box for inside, box in [box_inside_image(box) for box in map(augment_box, boxes)]
+            if inside
         ]
     elif boxes_format == 'lines':
         boxes_augmented = [[(augment_box(box), character) for box, character in line]
                            for line in boxes]
-        boxes_augmented = [[(box, character) for box, character in line
-                            if box_inside_augmented_image(box)] for line in boxes_augmented]
+        boxes_augmented = [[(box, character)
+                            for (inside, box), character in [(box_inside_image(box), character)
+                                                             for box, character in line] if inside]
+                           for line in boxes_augmented]
+        # Sometimes all the characters in a line are removed.
+        boxes_augmented = [line for line in boxes_augmented if line]
     elif boxes_format == 'predictions':
         boxes_augmented = [(word, augment_box(box)) for word, box in boxes]
-        boxes_augmented = [(word, box) for word, box in boxes_augmented
-                           if box_inside_augmented_image(box)]
+        boxes_augmented = [(word, box) for word, (inside, box) in [(word, box_inside_image(box))
+                                                                   for word, box in boxes_augmented]
+                           if inside]
     else:
         raise NotImplementedError(f'Unsupported boxes format: {boxes_format}')
     return image_augmented, boxes_augmented
