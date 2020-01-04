@@ -60,6 +60,28 @@ def warpBox(image, box, target_height, target_width, margin=0, cval=(0, 0, 0)):
     return full
 
 
+def combine_line(line):
+    """Combine a set of boxes in a line into a single bounding
+    box.
+
+    Args:
+        line: A list of (box, character) entries
+
+    Returns:
+        A (box, text) tuple
+    """
+    text = ''.join([character for _, character in line])
+    box = np.concatenate([coords[:2] for coords, _ in line] +
+                         [np.array([coords[3], coords[2]])
+                          for coords, _ in reversed(line)]).astype('float32')
+    rectangle = cv2.minAreaRect(box)
+    box = cv2.boxPoints(rectangle)
+
+    # Put the points in clockwise order
+    box = np.array(np.roll(box, 4 - box.sum(axis=1).argmin(), 0))
+    return box, text
+
+
 def drawBoxes(image, boxes, color=(255, 0, 0), thickness=5, boxes_format='boxes'):
     """Draw boxes onto an image.
 
@@ -192,10 +214,12 @@ def fit(image, width: int, height: int, cval: int = 255, mode='letterbox', retur
         The new image
     """
     fitted = None
-    if width == image.shape[1] and height == image.shape[0]:
+    x_scale = width / image.shape[1]
+    y_scale = height / image.shape[0]
+    if x_scale == 1 and y_scale == 1:
         fitted = image
         scale = 1
-    elif width / image.shape[1] <= height / image.shape[0]:
+    elif (x_scale <= y_scale and mode == 'letterbox') or (x_scale >= y_scale and mode == 'crop'):
         scale = width / image.shape[1]
         resize_width = width
         resize_height = (width / image.shape[1]) * image.shape[0]

@@ -151,13 +151,7 @@ def _strip_lines(lines):
 def convert_lines_to_paragraph(lines):
     """Convert a series of lines, each consisting of
     (box, character) tuples, into a multi-line string."""
-    return '\n'.join([convert_line_to_sentence(line) for line in lines])
-
-
-def convert_line_to_sentence(line):
-    """Convert a line consisting of (box, character) tuples
-    into a line of text."""
-    return ''.join([c[-1] for c in line])
+    return '\n'.join([''.join([c[-1] for c in line]) for line in lines])
 
 
 def convert_image_generator_to_recognizer_input(image_generator,
@@ -180,15 +174,7 @@ def convert_image_generator_to_recognizer_input(image_generator,
         if len(lines) == 0:
             continue
         subset = _strip_line(lines[np.argmax(list(map(len, lines)))][:max_string_length])
-        points = np.concatenate(
-            [coords[:2] for coords, _ in subset] +
-            [np.array([coords[3], coords[2]]) for coords, _ in reversed(subset)]).astype('float32')
-        rectangle = cv2.minAreaRect(points)
-        box = cv2.boxPoints(rectangle)
-
-        # Put the points in clockwise order
-        box = np.array(np.roll(box, 4 - box.sum(axis=1).argmin(), 0))
-        sentence = convert_line_to_sentence(subset)
+        box, sentence = tools.combine_line(subset)
         lines = [subset]
         image = tools.warpBox(image=image,
                               box=box,
@@ -501,6 +487,9 @@ def get_image_generator(height,
                                             color=text_color,
                                             draw_contour=draw_contour_text)
         alpha = text_image[..., -1:].astype('float32') / 255
+        print('image', alpha.shape)
+        print('text_image', text_image.shape)
+        print('current_background', current_background.shape)
         image = (alpha * text_image[..., :3] + (1 - alpha) * current_background).astype('uint8')
         if draw_contour:
             image = cv2.drawContours(
