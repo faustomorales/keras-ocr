@@ -21,6 +21,7 @@ torchvision = "*"
 scikit-learn = "*"
 sphinx = "==1.8.3"
 m2r = "==0.2.1"
+Pillow = "==6.2.2"  # We need to do this because of https://github.com/pytorch/vision/issues/1714
 sphinx_rtd_theme = "==0.4.2"
 
 [packages]
