@@ -55,7 +55,7 @@ def warpBox(image, box, target_height, target_width, margin=0, cval=(0, 0, 0)):
                                                   [scale * w - margin, scale * h - margin],
                                                   [margin, scale * h - margin]]).astype('float32'))
     crop = cv2.warpPerspective(image, M, dsize=(int(scale * w), int(scale * h)))
-    full = np.zeros((target_height, target_width, 3)).astype('uint8') + cval
+    full = (np.zeros((target_height, target_width, 3)) + cval).astype('uint8')
     full[:crop.shape[0], :crop.shape[1]] = crop
     return full
 
