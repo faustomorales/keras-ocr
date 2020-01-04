@@ -11,7 +11,7 @@ class Pipeline:
         detector: The detector to use
         recognizer: The recognizer to use
     """
-    def __init__(self, detector=None, recognizer=None, scale=1):
+    def __init__(self, detector=None, recognizer=None, scale=2):
         if detector is None:
             detector = detection.Detector()
         if recognizer is None:
