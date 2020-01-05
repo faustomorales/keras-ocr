@@ -113,6 +113,7 @@ def get_born_digital_recognizer_dataset(split='train', cache_dir=None):
     if cache_dir is None:
         cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
     main_dir = os.path.join(cache_dir, 'borndigital')
+    assert split in ['train', 'traintest', 'test'], f'Unsupported split: {split}'
     if split in ['train', 'traintest']:
         train_dir = os.path.join(main_dir, 'train')
         training_zip_path = tools.download_and_verify(
@@ -120,8 +121,11 @@ def get_born_digital_recognizer_dataset(split='train', cache_dir=None):
             'https://storage.googleapis.com/keras-ocr/borndigital/Challenge1_Training_Task3_Images_GT.zip',  # pylint: disable=line-too-long
             cache_dir=main_dir,
             sha256='8ede0639f5a8031d584afd98cee893d1c5275d7f17863afc2cba24b13c932b07')
-        with zipfile.ZipFile(training_zip_path) as zfile:
-            zfile.extractall(train_dir)
+        if len(
+                glob.glob(os.path.join(train_dir, '*.png')) +
+                glob.glob(os.path.join(train_dir, '*.txt'))) != 3568:
+            with zipfile.ZipFile(training_zip_path) as zfile:
+                zfile.extractall(train_dir)
         data.extend(
             _read_born_digital_labels_file(labels_filepath=os.path.join(train_dir, 'gt.txt'),
                                            image_folder=train_dir))
@@ -132,8 +136,9 @@ def get_born_digital_recognizer_dataset(split='train', cache_dir=None):
             'https://storage.googleapis.com/keras-ocr/borndigital/Challenge1_Test_Task3_Images.zip',
             cache_dir=main_dir,
             sha256='8f781b0140fd0bac3750530f0924bce5db3341fd314a2fcbe9e0b6ca409a77f0')
-        with zipfile.ZipFile(test_zip_path) as zfile:
-            zfile.extractall(test_dir)
+        if len(glob.glob(os.path.join(test_dir, '*.png'))) != 1439:
+            with zipfile.ZipFile(test_zip_path) as zfile:
+                zfile.extractall(test_dir)
         test_gt_path = tools.download_and_verify(
             url='https://storage.googleapis.com/keras-ocr/borndigital/Challenge1_Test_Task3_GT.txt',
             cache_dir=test_dir,
@@ -187,15 +192,17 @@ def get_icdar_2013_detector_dataset(cache_dir=None, skip_illegible=False):
         'https://storage.googleapis.com/keras-ocr/icdar2013/Challenge2_Training_Task12_Images.zip',  # pylint: disable=line-too-long
         cache_dir=main_dir,
         sha256='7a57d1699fbb92db3ad82c930202938562edaf72e1c422ddd923860d8ace8ded')
-    with zipfile.ZipFile(training_zip_images_path) as zfile:
-        zfile.extractall(training_images_dir)
+    if len(glob.glob(os.path.join(training_images_dir, '*.jpg'))) != 229:
+        with zipfile.ZipFile(training_zip_images_path) as zfile:
+            zfile.extractall(training_images_dir)
     training_gt_dir = os.path.join(main_dir, 'Challenge2_Training_Task2_GT')
     training_zip_gt_path = tools.download_and_verify(
         url='https://storage.googleapis.com/keras-ocr/icdar2013/Challenge2_Training_Task2_GT.zip',  # pylint: disable=line-too-long
         cache_dir=main_dir,
         sha256='4cedd5b1e33dc4354058f5967221ac85dbdf91a99b30f3ab1ecdf42786a9d027')
-    with zipfile.ZipFile(training_zip_gt_path) as zfile:
-        zfile.extractall(training_gt_dir)
+    if len(glob.glob(os.path.join(training_gt_dir, '*.txt'))) != 229:
+        with zipfile.ZipFile(training_zip_gt_path) as zfile:
+            zfile.extractall(training_gt_dir)
 
     dataset = []
     for gt_filepath in glob.glob(os.path.join(training_gt_dir, '*.txt')):
