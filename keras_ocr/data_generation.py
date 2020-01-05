@@ -568,9 +568,6 @@ def get_image_generator(height,
                                             color=text_color,
                                             draw_contour=draw_contour_text)
         alpha = text_image[..., -1:].astype('float32') / 255
-        print('image', alpha.shape)
-        print('text_image', text_image.shape)
-        print('current_background', current_background.shape)
         image = (alpha * text_image[..., :3] + (1 - alpha) * current_background).astype('uint8')
         if draw_contour:
             image = cv2.drawContours(
