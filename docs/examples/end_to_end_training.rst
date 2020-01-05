@@ -29,7 +29,6 @@ The backgrounds folder contains about just over 1,000 image backgrounds.
     import zipfile
     import datetime
     import string
-    import glob
     import math
     import os
 
@@ -43,36 +42,13 @@ The backgrounds folder contains about just over 1,000 image backgrounds.
     assert tf.test.is_gpu_available(), 'No GPU is available.'
 
     data_dir = '.'
-
-    if not os.path.isdir('fonts'):
-        fonts_zip_path = keras_ocr.tools.download_and_verify(
-            url='https://storage.googleapis.com/keras-ocr/fonts.zip',
-            sha256='d4d90c27a9bc4bf8fff1d2c0a00cfb174c7d5d10f60ed29d5f149ef04d45b700',
-            cache_dir=data_dir
-        )
-        with zipfile.ZipFile(fonts_zip_path) as zfile:
-            zfile.extractall('./fonts')
-    if not os.path.isdir('backgrounds'):
-        backgrounds_zip_path = keras_ocr.tools.download_and_verify(
-            url='https://storage.googleapis.com/keras-ocr/backgrounds.zip',
-            sha256='f263ed0d55de303185cc0f93e9fcb0b13104d68ed71af7aaaa8e8c91389db471',
-            cache_dir=data_dir
-        )
-        with zipfile.ZipFile(backgrounds_zip_path) as zfile:
-            zfile.extractall('./backgrounds')
-    
     alphabet = string.digits + string.ascii_letters + '!?. '
     recognizer_alphabet = ''.join(sorted(set(alphabet.lower())))
-
-    fonts = [
-        filepath for filepath in tqdm.tqdm(glob.glob('fonts/**/*.ttf'))
-        if (
-            (not any(keyword in filepath.lower() for keyword in ['thin', 'light'])) and
-            keras_ocr.data_generation.font_supports_alphabet(filepath=filepath, alphabet=alphabet)
-        )
-    ]
-
-    backgrounds = glob.glob('backgrounds/*.jpg')
+    fonts = keras_ocr.data_generation.get_fonts(
+        alphabet=alphabet,
+        cache_dir=data_dir
+    )
+    backgrounds = keras_ocr.tools.get_backgrounds(cache_dir=data_dir)
 
 With a set of fonts, backgrounds, and alphabet, we now build our data generators.
 

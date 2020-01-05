@@ -1,10 +1,15 @@
 # pylint: disable=invalid-name,too-many-locals,too-many-arguments,too-many-branches,too-many-statements,stop-iteration-return
+import os
 import math
+import glob
 import typing
 import random
+import zipfile
+import string
 import itertools
 
 import cv2
+import tqdm
 import numpy as np
 import essential_generators
 import PIL.Image
@@ -97,6 +102,8 @@ def font_supports_alphabet(filepath, alphabet):
         filepath: Path to fsontfile
         alphabet: A string of characters to check for.
     """
+    if alphabet == '':
+        return True
     font = fontTools.ttLib.TTFont(filepath)
     if not all(any(ord(c) in table.cmap.keys() for table in font['cmap'].tables) for c in alphabet):
         return False
@@ -148,6 +155,78 @@ def _strip_lines(lines):
     return lines
 
 
+def get_backgrounds(cache_dir=None):
+    """Download a set of pre-reviewed backgrounds.
+
+    Args:
+        cache_dir: Where to save the dataset. By default, data will be
+            saved to ~/.keras-ocr.
+
+    Returns:
+        A list of background filepaths.
+    """
+    if cache_dir is None:
+        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+    backgrounds_dir = os.path.join(cache_dir, 'backgrounds')
+    backgrounds_zip_path = tools.download_and_verify(
+        url='https://storage.googleapis.com/keras-ocr/backgrounds.zip',
+        sha256='f263ed0d55de303185cc0f93e9fcb0b13104d68ed71af7aaaa8e8c91389db471',
+        cache_dir=cache_dir)
+    if len(glob.glob(os.path.join(backgrounds_dir, '*'))) != 1035:
+        with zipfile.ZipFile(backgrounds_zip_path) as zfile:
+            zfile.extractall(backgrounds_dir)
+    return glob.glob(os.path.join(backgrounds_dir, '*.jpg'))
+
+
+def get_fonts(cache_dir=None,
+              alphabet=string.ascii_letters + string.digits,
+              exclude_smallcaps=False):
+    """Download a set of pre-reviewed fonts.
+
+    Args:
+        cache_dir: Where to save the dataset. By default, data will be
+            saved to ~/.keras-ocr.
+        alphabet: An alphabet which we will use to exclude fonts
+            that are missing relevant characters. By default, this is
+            set to `string.ascii_letters + string.digits`.
+        exclude_smallcaps: If True, fonts that are known to use
+            the same glyph for lowercase and uppercase characters
+            are excluded.
+
+    Returns:
+        A list of font filepaths.
+    """
+    if cache_dir is None:
+        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+    fonts_zip_path = tools.download_and_verify(
+        url='https://storage.googleapis.com/keras-ocr/fonts.zip',
+        sha256='d4d90c27a9bc4bf8fff1d2c0a00cfb174c7d5d10f60ed29d5f149ef04d45b700',
+        cache_dir=cache_dir)
+    fonts_dir = os.path.join(cache_dir, 'fonts')
+    if len(glob.glob(os.path.join(fonts_dir, '**/*.ttf'))) != 2746:
+        print('Unzipping fonts ZIP file.')
+        with zipfile.ZipFile(fonts_zip_path) as zfile:
+            zfile.extractall(fonts_dir)
+    font_filepaths = glob.glob(os.path.join(fonts_dir, '**/*.ttf'))
+    if exclude_smallcaps:
+        with open(
+                tools.download_and_verify(
+                    url='https://storage.googleapis.com/keras-ocr/fonts_smallcaps.txt',
+                    sha256='6531c700523c687f02852087530d1ab3c7cc0b59891bbecc77726fbb0aabe68e',
+                    cache_dir=cache_dir), 'r') as f:
+            smallcaps_fonts = f.read().split('\n')
+            font_filepaths = [
+                filepath for filepath in font_filepaths
+                if os.path.join(*filepath.split(os.sep)[-2:]) not in smallcaps_fonts
+            ]
+    if alphabet != '':
+        font_filepaths = [
+            filepath for filepath in tqdm.tqdm(font_filepaths, desc='Filtering fonts.')
+            if font_supports_alphabet(filepath=filepath, alphabet=alphabet)
+        ]
+    return font_filepaths
+
+
 def convert_lines_to_paragraph(lines):
     """Convert a series of lines, each consisting of
     (box, character) tuples, into a multi-line string."""
@@ -173,15 +252,17 @@ def convert_image_generator_to_recognizer_input(image_generator,
         image, lines = next(image_generator)
         if len(lines) == 0:
             continue
-        subset = _strip_line(lines[np.argmax(list(map(len, lines)))][:max_string_length])
-        box, sentence = tools.combine_line(subset)
-        lines = [subset]
-        image = tools.warpBox(image=image,
-                              box=box,
-                              target_width=target_width,
-                              target_height=target_height,
-                              margin=margin)
-        yield image, sentence
+        for line in lines:
+            line = _strip_line(line[:max_string_length])
+            if not line:
+                continue
+            box, sentence = tools.combine_line(line)
+            crop = tools.warpBox(image=image,
+                                 box=box,
+                                 target_width=target_width,
+                                 target_height=target_height,
+                                 margin=margin)
+            yield crop, sentence
 
 
 def draw_text_image(text,
