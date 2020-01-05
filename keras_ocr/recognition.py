@@ -304,10 +304,11 @@ class Recognizer:
             pretrained_config = PRETRAINED_WEIGHTS[pretrained_key]
             if include_top:
                 pretrained_target = self.model
-                assert pretrained_config['alphabet'] == alphabet, (
+                pretrained_alphabet = pretrained_config['alphabet']
+                assert pretrained_alphabet == alphabet, (
                     'Provided alphabet does not match pretrained alphabet. '
-                    'Please use `alphabet={alphabet}` or `include_top=False`').format(
-                        alphabet=alphabet)
+                    'Please use `alphabet={pretrained_alphabet}` or `include_top=False`').format(
+                        pretrained_alphabet=pretrained_alphabet)
             else:
                 pretrained_target = self.backbone
             pretrained_target.load_weights(
