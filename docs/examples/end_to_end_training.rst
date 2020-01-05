@@ -48,7 +48,7 @@ The backgrounds folder contains about just over 1,000 image backgrounds.
         alphabet=alphabet,
         cache_dir=data_dir
     )
-    backgrounds = keras_ocr.tools.get_backgrounds(cache_dir=data_dir)
+    backgrounds = keras_ocr.data_generation.get_backgrounds(cache_dir=data_dir)
 
 With a set of fonts, backgrounds, and alphabet, we now build our data generators.
 
