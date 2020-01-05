@@ -35,7 +35,13 @@ def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
-def warpBox(image, box, target_height, target_width, margin=0, cval=(0, 0, 0)):
+def warpBox(image,
+            box,
+            target_height,
+            target_width,
+            margin=0,
+            cval=(0, 0, 0),
+            return_transform=False):
     """Warp a boxed region in an image given by a set of four points into
     a rectangle with a specified width and height. Useful for taking crops
     of distorted or rotated text.
@@ -46,6 +52,8 @@ def warpBox(image, box, target_height, target_width, margin=0, cval=(0, 0, 0)):
             corner and moving clockwise.
         target_height: The height of the output rectangle
         target_width: The width of the output rectangle
+        return_transform: Whether to return the transformation
+            matrix with the image.
     """
     box, _ = get_rotated_box(box)
     _, _, w, h = cv2.boundingRect(box)
@@ -57,6 +65,8 @@ def warpBox(image, box, target_height, target_width, margin=0, cval=(0, 0, 0)):
     crop = cv2.warpPerspective(image, M, dsize=(int(scale * w), int(scale * h)))
     full = (np.zeros((target_height, target_width, 3)) + cval).astype('uint8')
     full[:crop.shape[0], :crop.shape[1]] = crop
+    if return_transform:
+        return full, M
     return full
 
 
