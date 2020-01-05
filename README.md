@@ -53,3 +53,24 @@ You may be wondering how the models in this package compare to existing cloud OC
 - Each of the entries provides a link to the JSON file containing the annotations made on each pass. You can use this with the notebook to compute metrics without having to make the API calls yourself (though you are encoraged to replicate it independently)!
 
 *Why not compare to Tesseract?* In every configuration I tried, Tesseract did very poorly on this test. Tesseract performs best on scans of books, not on incidental scene text like that in this dataset.
+
+## Contributing
+To work on the project, start by doing the following. These instructions probably do not yet work for Windows but if a Windows user has some ideas for how to fix that it would be greatly appreciated (I don't have a Windows machine to test on at the moment).
+
+```bash
+# Install local dependencies for
+# code completion, etc.
+make init
+
+# Build the Docker container to run
+# tests and such.
+make build
+```
+
+- You can get a JupyterLab server running to experiment with using make `lab-server`.
+- To run checks before committing code, you can use `make precommit`.
+- To view the documentation, use `make documentation-server`.
+
+To implement new features, please first file an issue proposing your change for discussion.
+
+To report problems, please file an issue with sample code, expected results, actual results, and a complete traceback.
