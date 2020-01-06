@@ -34,4 +34,4 @@ def test_pytorch_identical_output():
     y_pred_keras = model_keras.predict(X)
     y_pred_torch = model_pytorch.forward(torch.from_numpy(X.transpose(0, 3, 1,
                                                                       2)))[0].detach().numpy()
-    np.testing.assert_almost_equal(y_pred_keras, y_pred_torch, decimal=4)
+    np.testing.assert_almost_equal(y_pred_keras, y_pred_torch.clip(0, 1), decimal=4)
