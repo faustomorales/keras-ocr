@@ -230,7 +230,7 @@ def get_icdar_2013_detector_dataset(cache_dir=None, skip_illegible=False):
     return dataset
 
 
-def get_detector_image_generator(labels, width, height, augmenter=None):
+def get_detector_image_generator(labels, width, height, augmenter=None, area_threshold=0.5):
     """Generated augmented (image, lines) tuples from a list
     of (filepath, lines, confidence) tuples. Confidence is
     not used right now but is included for a future release
@@ -241,6 +241,8 @@ def get_detector_image_generator(labels, width, height, augmenter=None):
         augmenter: An augmenter to apply to the images.
         width: The width to use for output images
         height: The height to use for output images
+        area_threshold: The area threshold to use to keep
+            characters in augmented images.
     """
     labels = labels.copy()
     for index in itertools.cycle(range(len(labels))):
@@ -252,6 +254,7 @@ def get_detector_image_generator(labels, width, height, augmenter=None):
             image, lines = tools.augment(boxes=lines,
                                          boxes_format='lines',
                                          image=image,
+                                         area_threshold=area_threshold,
                                          augmenter=augmenter)
         image, scale = tools.fit(image,
                                  width=width,
