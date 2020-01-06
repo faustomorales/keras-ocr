@@ -66,5 +66,5 @@ def test_per_layer_lr_multiplier():
             # That change should be very, very small relative
             # to the change in the layers with the full learning
             # rate.
-            assert np.max(delta_frozen) < 1e-3 * np.max(delta_free)
+            assert np.max(delta_frozen) < 1e-2 * np.max(delta_free)
         model.set_weights(weights_before.values())
