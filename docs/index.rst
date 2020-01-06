@@ -7,6 +7,8 @@ Please see the :doc:`examples <examples/index>` for more information.
 Installation
 ************
 
+:code:`keras-ocr` supports Python >= 3.6 and TensorFlow >= 2.0.0.
+
 .. code-block:: bash
 
     # To install from master

@@ -6,6 +6,8 @@ Please see [the documentation](https://keras-ocr.readthedocs.io/) for more examp
 ## Getting Started
 
 ### Installation
+`keras-ocr` supports Python >= 3.6 and TensorFlow >= 2.0.0.
+
 ```bash
 # To install from master
 pip install git+https://github.com/faustomorales/keras-ocr.git#egg=keras-ocr
