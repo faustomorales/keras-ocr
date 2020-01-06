@@ -264,6 +264,23 @@ def build_model(alphabet,
 
 
 class Recognizer:
+    """A text detector using the CRNN architecture.
+
+    Args:
+        alphabet: The alphabet the model should recognize.
+        height: The height of cropped images
+        width: The width of cropped images
+        color: Whether the inputs should be in color (RGB)
+        filters: The number of filters to use for each of the 7 convolutional layers
+        rnn_units: The number of units for each of the RNN layers
+        dropout: The dropout to use for the final layer
+        optimizer: The initial optimizer to use for the training model
+        stn: Whether to add a Spatial Transformer layer
+        rnn_steps_to_discard: The number of initial RNN steps to discard
+        weights: The starting weights for the model (coupled with alphabet)
+        include_top: Whether to include the final classification layer in the model (set
+            to False to use a custom alphabet).
+    """
     def __init__(self,
                  alphabet=string.digits + string.ascii_lowercase,
                  height=31,
