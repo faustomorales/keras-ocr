@@ -368,7 +368,8 @@ class Recognizer:
                                    width=self.prediction_model.input_shape[2],
                                    height=self.prediction_model.input_shape[1],
                                    cval=0)
-        if self.prediction_model.input_shape[-1] == 1:
+        if self.prediction_model.input_shape[-1] == 1 and image.shape[-1] == 3:
+            # Convert color to grayscale
             image = cv2.cvtColor(image, code=cv2.COLOR_RGB2GRAY)[..., np.newaxis]
         image = image.astype('float32') / 255
         return ''.join([
