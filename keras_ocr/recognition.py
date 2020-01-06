@@ -375,7 +375,7 @@ class Recognizer:
                                (max_string_length - len(sentence)) for sentence in sentences])
             input_length = np.ones((batch_size, 1)) * max_string_length
             if len(batch[0]) == 3:
-                sample_weights = [sample[2] for sample in batch]
+                sample_weights = np.array([sample[2] for sample in batch])
                 yield (images, labels, input_length, label_length), y, sample_weights
             else:
                 yield (images, labels, input_length, label_length), y

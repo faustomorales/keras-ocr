@@ -623,7 +623,7 @@ class Detector:
             ])
             # pylint: enable=unsubscriptable-object
             if len(batch[0]) == 3:
-                sample_weights = [sample[2] for sample in batch]
+                sample_weights = np.array([sample[2] for sample in batch])
                 yield X, y, sample_weights
             else:
                 yield X, y
