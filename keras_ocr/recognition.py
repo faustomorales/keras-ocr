@@ -320,7 +320,8 @@ class Recognizer:
         Generate batches of training data from an image generator. The generator
         should yield tuples of (image, sentence) where image contains a single
         line of text and sentence is a string representing the contents of
-        the image.
+        the image. If a sample weight is desired, it can be provided as a third
+        entry in the tuple, making each tuple an (image, sentence, weight) tuple.
 
         Args:
             image_generator: An image / sentence tuple generator. The images should
@@ -335,15 +336,15 @@ class Recognizer:
             raise Exception('You must first call create_training_model().')
         max_string_length = self.training_model.input_shape[1][1]
         while True:
-            batch = [data for data, _ in zip(image_generator, range(batch_size))]
+            batch = [sample for sample, _ in zip(image_generator, range(batch_size))]
             if not self.model.input_shape[-1] == 3:
                 images = [
-                    cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)[..., np.newaxis] for image, _ in batch
+                    cv2.cvtColor(sample[0], cv2.COLOR_RGB2GRAY)[..., np.newaxis] for sample in batch
                 ]
             else:
-                images = [image for image, _ in batch]
+                images = [sample[0] for sample in batch]
             images = np.array([image.astype('float32') / 255 for image in images])
-            sentences = [sentence.strip() for _, sentence in batch]
+            sentences = [sample[1].strip() for sample in batch]
             if lowercase:
                 sentences = [sentence.lower() for sentence in sentences]
             assert all(c in self.alphabet
@@ -356,7 +357,11 @@ class Recognizer:
             labels = np.array([[self.alphabet.index(c) for c in sentence] + [self.blank_label_idx] *
                                (max_string_length - len(sentence)) for sentence in sentences])
             input_length = np.ones((batch_size, 1)) * max_string_length
-            yield (images, labels, input_length, label_length), y
+            if len(batch[0]) == 3:
+                sample_weights = [sample[2] for sample in batch]
+                yield (images, labels, input_length, label_length), y, sample_weights
+            else:
+                yield (images, labels, input_length, label_length), y
 
     def recognize(self, image):
         """Recognize text from a single image.

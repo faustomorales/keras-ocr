@@ -599,7 +599,9 @@ class Detector:
 
         Args:
             image_generator: A generator with the same signature as
-                keras_ocr.tools.get_image_generator.
+                keras_ocr.tools.get_image_generator. Optionally, a third
+                entry in the tuple (beyond image and lines) can be provided
+                which will be interpreted as the sample weight.
             batch_size: The size of batches to generate.
             heatmap_size: The size of the heatmap to pass to get_gaussian_heatmap
             heatmap_distance_ratio: The distance ratio to pass to
@@ -620,7 +622,11 @@ class Detector:
                              lines=lines) for lines in line_groups
             ])
             # pylint: enable=unsubscriptable-object
-            yield X, y
+            if len(batch[0]) == 3:
+                sample_weights = [sample[2] for sample in batch]
+                yield X, y, sample_weights
+            else:
+                yield X, y
 
     def detect(self,
                images: typing.List[typing.Union[np.ndarray, str]],
