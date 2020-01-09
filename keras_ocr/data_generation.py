@@ -68,12 +68,11 @@ def get_maximum_uniform_contour(image, fontsize, margin=0):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     blurred = cv2.blur(src=gray, ksize=(fontsize // 2, fontsize // 2))
     _, threshold = cv2.threshold(src=blurred, thresh=255 / 2, maxval=255, type=cv2.THRESH_BINARY)
-    contoursDark, _ = cv2.findContours(255 - threshold,
-                                       mode=cv2.RETR_TREE,
-                                       method=cv2.CHAIN_APPROX_SIMPLE)
-    contoursLight, _ = cv2.findContours(threshold,
-                                        mode=cv2.RETR_TREE,
-                                        method=cv2.CHAIN_APPROX_SIMPLE)
+    contoursDark = cv2.findContours(255 - threshold,
+                                    mode=cv2.RETR_TREE,
+                                    method=cv2.CHAIN_APPROX_SIMPLE)[-2]
+    contoursLight = cv2.findContours(threshold, mode=cv2.RETR_TREE,
+                                     method=cv2.CHAIN_APPROX_SIMPLE)[-2]
     areasDark = list(map(cv2.contourArea, contoursDark))
     areasLight = list(map(cv2.contourArea, contoursLight))
     maxDarkArea = max(areasDark) if areasDark else 0

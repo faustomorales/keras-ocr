@@ -202,9 +202,9 @@ def getBoxes(y_pred,
                 cv2.getStructuringElement(cv2.MORPH_RECT, (1 + niter, 1 + niter)))
 
             # Make rotated box from contour
-            contours, _ = cv2.findContours(segmap.astype('uint8'),
-                                           mode=cv2.RETR_TREE,
-                                           method=cv2.CHAIN_APPROX_SIMPLE)
+            contours = cv2.findContours(segmap.astype('uint8'),
+                                        mode=cv2.RETR_TREE,
+                                        method=cv2.CHAIN_APPROX_SIMPLE)[-2]
             contour = contours[0]
             box = cv2.boxPoints(cv2.minAreaRect(contour))
 
