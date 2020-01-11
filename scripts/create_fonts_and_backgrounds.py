@@ -118,8 +118,6 @@ if __name__ == '__main__':
     image_urls = [url for url in image_urls if url.lower().endswith('.jpg')]
     shutil.rmtree('backgrounds', ignore_errors=True)
     os.makedirs('backgrounds')
-    with open('backgrounds/urls.txt', 'w') as f:
-        f.write('\n'.join(image_urls))
     assert len(image_urls) == len(set(image_urls)), 'Duplicates found!'
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         futures = [
