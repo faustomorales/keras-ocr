@@ -110,14 +110,11 @@ Here we build our detector and recognizer models. For both, we'll start with pre
 
     detector = keras_ocr.detection.Detector(weights='clovaai_general')
     recognizer = keras_ocr.recognition.Recognizer(
-        width=200,
-        height=31,
-        stn=True,
         alphabet=recognizer_alphabet,
         weights='kurapan',
-        optimizer='RMSprop',
         include_top=False
     )
+    recognizer.compile()
     for layer in recognizer.backbone.layers:
         layer.trainable = False
 
@@ -228,7 +225,7 @@ Once training is done, you can use :code:`recognize` to extract text.
     
     pipeline = keras_ocr.pipelines.Pipeline(detector=detector, recognizer=recognizer)
     image, text, lines = next(image_generators[0])
-    predictions = pipeline.recognize(image=image)
+    predictions = pipeline.recognize(images=[image])[0]
     drawn = keras_ocr.tools.drawBoxes(
         image=image, boxes=predictions, boxes_format='predictions'
     )

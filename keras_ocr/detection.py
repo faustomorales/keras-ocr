@@ -633,7 +633,8 @@ class Detector:
                detection_threshold=0.7,
                text_threshold=0.4,
                link_threshold=0.4,
-               size_threshold=10):
+               size_threshold=10,
+               **kwargs):
         """Recognize the text in a set of images.
 
         Args:
@@ -644,7 +645,7 @@ class Detector:
         boxes = []
         for image in images:
             boxes.append(
-                getBoxes(self.model.predict(image[np.newaxis]),
+                getBoxes(self.model.predict(image[np.newaxis], **kwargs),
                          detection_threshold=detection_threshold,
                          text_threshold=text_threshold,
                          link_threshold=link_threshold,

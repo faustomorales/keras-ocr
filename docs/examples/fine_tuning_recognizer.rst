@@ -44,12 +44,8 @@ We next build our recognizer, using the default options to get a pretrained mode
 
 .. code-block:: python
 
-    recognizer = keras_ocr.recognition.Recognizer(
-        width=200,
-        height=31,
-        optimizer='RMSprop',
-        include_top=True
-    )
+    recognizer = keras_ocr.recognition.Recognizer()
+    recognizer.compile()
 
 We need to convert our dataset into the format that :code:`keras-ocr` requires. To 
 do that, we have the following, which includes support for an augmenter to

@@ -28,7 +28,7 @@ import keras_ocr
 pipeline = keras_ocr.pipeline.Pipeline()
 
 # Predictions is a list of (string, box) tuples.
-predictions = pipeline.recognize(image='tests/test_image.jpg')
+predictions = pipeline.recognize(images=['tests/test_image.jpg'])[0]
 ```
 
 ![example of labeled image](https://raw.githubusercontent.com/faustomorales/keras-ocr/master/tests/test_image_labeled.jpg)

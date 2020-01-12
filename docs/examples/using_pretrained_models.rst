@@ -16,7 +16,7 @@ The below example shows how to use the pretrained models.
     image = keras_ocr.tools.read('../tests/test_image.jpg')
 
     # Predictions is a list of (text, box) tuples.
-    predictions = pipeline.recognize(image=image)
+    predictions = pipeline.recognize(images=[image])[0]
 
     # Plot the results.
     fig, ax = plt.subplots()

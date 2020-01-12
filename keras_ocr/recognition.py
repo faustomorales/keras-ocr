@@ -9,18 +9,34 @@ import cv2
 
 from . import tools
 
+DEFAULT_BUILD_PARAMS = {
+    'height': 31,
+    'width': 200,
+    'color': False,
+    'filters': (64, 128, 256, 256, 512, 512, 512),
+    'rnn_units': (128, 128),
+    'dropout': 0.25,
+    'rnn_steps_to_discard': 2,
+    'pool_size': 2,
+    'stn': True,
+}
+
+DEFAULT_ALPHABET = string.digits + string.ascii_lowercase
+
 PRETRAINED_WEIGHTS = {
-    # Keys are (weights_name, include_top, filters, rnn_units, color, stn)
-    # pylint: disable=line-too-long
-    ('kurapan', True, (64, 128, 256, 256, 512, 512, 512), (128, 128), False, True): {
-        'url': 'https://storage.googleapis.com/keras-ocr/crnn_kurapan.h5',
-        'sha256': 'a7d8086ac8f5c3d6a0a828f7d6fbabcaf815415dd125c32533013f85603be46d',
-        'alphabet': string.digits + string.ascii_lowercase
-    },
-    ('kurapan', False, (64, 128, 256, 256, 512, 512, 512), (128, 128), False, True): {
-        'url': 'https://storage.googleapis.com/keras-ocr/crnn_kurapan_notop.h5',
-        'sha256': '027fd2cced3cbea0c4f5894bb8e9e85bac04f11daf96b8fdcf1e4ee95dcf51b9',
-        'alphabet': None
+    'kurapan': {
+        'alphabet': DEFAULT_ALPHABET,
+        'build_params': DEFAULT_BUILD_PARAMS,
+        'weights': {
+            'notop': {
+                'url': 'https://storage.googleapis.com/keras-ocr/crnn_kurapan_notop.h5',
+                'sha256': '027fd2cced3cbea0c4f5894bb8e9e85bac04f11daf96b8fdcf1e4ee95dcf51b9'
+            },
+            'top': {
+                'url': 'https://storage.googleapis.com/keras-ocr/crnn_kurapan.h5',
+                'sha256': 'a7d8086ac8f5c3d6a0a828f7d6fbabcaf815415dd125c32533013f85603be46d'
+            }
+        }
     }
 }
 
@@ -142,29 +158,46 @@ def _transform(inputs):
     return transformed_image
 
 
-def CTCDecoder():  # pylint: disable=invalid-name
+def CTCDecoder():
     def decoder(y_pred):
-        y_pred = y_pred[:, :, :]
-        input_length = keras.backend.ones_like(y_pred[:, 0, 0]) * keras.backend.cast(
-            keras.backend.shape(y_pred)[1], 'float32')
-        return keras.backend.ctc_decode(y_pred, input_length)[0]
+        input_shape = tf.keras.backend.shape(y_pred)
+        input_length = tf.ones(shape=input_shape[0]) * tf.keras.backend.cast(
+            input_shape[1], 'float32')
+        unpadded = tf.keras.backend.ctc_decode(y_pred, input_length)[0][0]
+        unpadded_shape = tf.keras.backend.shape(unpadded)
+        padded = tf.pad(unpadded,
+                        paddings=[[0, 0], [0, input_shape[1] - unpadded_shape[1]]],
+                        constant_values=-1)
+        return padded
 
-    return keras.layers.Lambda(decoder, name='decode')
+    return tf.keras.layers.Lambda(decoder, name='decode')
 
 
 def build_model(alphabet,
                 height,
                 width,
-                color=False,
-                filters=None,
-                rnn_units=None,
-                dropout=0.25,
-                rnn_steps_to_discard=2,
-                optimizer=None,
-                pool_size=2,
+                color,
+                filters,
+                rnn_units,
+                dropout,
+                rnn_steps_to_discard,
+                pool_size,
                 stn=True):
-    if optimizer is None:
-        optimizer = keras.optimizers.SGD(decay=1e-6, momentum=0.9, nesterov=True, clipnorm=5)
+    """Build a Keras CRNN model for character recognition.
+
+    Args:
+        height: The height of cropped images
+        width: The width of cropped images
+        color: Whether the inputs should be in color (RGB)
+        filters: The number of filters to use for each of the 7 convolutional layers
+        rnn_units: The number of units for each of the RNN layers
+        dropout: The dropout to use for the final layer
+        rnn_steps_to_discard: The number of initial RNN steps to discard
+        pool_size: The size of the pooling steps
+        stn: Whether to add a Spatial Transformer layer
+    """
+    assert len(filters) == 7, '7 CNN filters must be provided.'
+    assert len(rnn_units) == 2, '2 RNN filters must be provided.'
     inputs = keras.layers.Input((height, width, 3 if color else 1))
     x = keras.layers.Permute((2, 1, 3))(inputs)
     x = keras.layers.Lambda(lambda x: x[:, :, ::-1])(x)
@@ -259,7 +292,6 @@ def build_model(alphabet,
             [labels, model.output, input_length, label_length])
     training_model = keras.models.Model(inputs=[model.input, labels, input_length, label_length],
                                         outputs=loss)
-    training_model.compile(loss=lambda _, y_pred: y_pred, optimizer=optimizer)
     return backbone, model, training_model, prediction_model
 
 
@@ -268,69 +300,37 @@ class Recognizer:
 
     Args:
         alphabet: The alphabet the model should recognize.
-        height: The height of cropped images
-        width: The width of cropped images
-        color: Whether the inputs should be in color (RGB)
-        filters: The number of filters to use for each of the 7 convolutional layers
-        rnn_units: The number of units for each of the RNN layers
-        dropout: The dropout to use for the final layer
-        optimizer: The initial optimizer to use for the training model
-        stn: Whether to add a Spatial Transformer layer
-        rnn_steps_to_discard: The number of initial RNN steps to discard
-        weights: The starting weights for the model (coupled with alphabet)
+        build_params: A dictionary of build parameters for the model.
+            See `keras_ocr.detection.build_model` for details.
+        weights: The starting weight configuration for the model.
         include_top: Whether to include the final classification layer in the model (set
             to False to use a custom alphabet).
     """
-    def __init__(self,
-                 alphabet=string.digits + string.ascii_lowercase,
-                 height=31,
-                 width=200,
-                 color=False,
-                 filters=None,
-                 rnn_units=None,
-                 dropout=0.25,
-                 optimizer=None,
-                 stn=True,
-                 rnn_steps_to_discard=2,
-                 weights='kurapan',
-                 include_top=True):
-        if filters is None:
-            filters = [64, 128, 256, 256, 512, 512, 512]
-        assert len(filters) == 7, '7 CNN filters must be provided.'
-        if rnn_units is None:
-            rnn_units = [128, 128]
-        assert len(rnn_units) == 2, '2 RNN filters must be provided.'
+    def __init__(self, alphabet=None, weights='kurapan', build_params=None):
+        assert alphabet or weights, 'At least one of alphabet or weights must be provided.'
+        if weights is not None:
+            build_params = PRETRAINED_WEIGHTS[weights]['build_params']
+            alphabet = alphabet or PRETRAINED_WEIGHTS[weights]['alphabet']
+        else:
+            build_params = DEFAULT_BUILD_PARAMS
+        if alphabet is None:
+            alphabet = DEFAULT_ALPHABET
         self.alphabet = alphabet
         self.blank_label_idx = len(alphabet)
         self.backbone, self.model, self.training_model, self.prediction_model = build_model(
-            alphabet=alphabet,
-            height=height,
-            width=width,
-            stn=stn,
-            optimizer=optimizer,
-            rnn_steps_to_discard=rnn_steps_to_discard,
-            color=color,
-            filters=filters,
-            rnn_units=rnn_units,
-            dropout=dropout)
+            alphabet=alphabet, **build_params)
         if weights is not None:
-            pretrained_key = (weights, include_top, tuple(filters), tuple(rnn_units), color, stn)
-            assert pretrained_key in PRETRAINED_WEIGHTS, (
-                'No pretrained weights available for this configuration. '
-                'Please set weights=None.')
-            pretrained_config = PRETRAINED_WEIGHTS[pretrained_key]
-            if include_top:
-                pretrained_target = self.model
-                pretrained_alphabet = pretrained_config['alphabet']
-                assert pretrained_alphabet == alphabet, (
-                    'Provided alphabet does not match pretrained alphabet. '
-                    'Please use `alphabet={pretrained_alphabet}` or `include_top=False`').format(
-                        pretrained_alphabet=pretrained_alphabet)
+            weights_dict = PRETRAINED_WEIGHTS[weights]
+            if alphabet == weights_dict['alphabet']:
+                self.model.load_weights(
+                    tools.download_and_verify(url=weights_dict['weights']['top']['url'],
+                                              sha256=weights_dict['weights']['top']['sha256']))
             else:
-                pretrained_target = self.backbone
-            pretrained_target.load_weights(
-                tools.download_and_verify(url=pretrained_config['url'],
-                                          sha256=pretrained_config['sha256']))
+                print('Provided alphabet does not match pretrained alphabet. '
+                      'Using backbone weights only.')
+                self.backbone.load_weights(
+                    tools.download_and_verify(url=weights_dict['weights']['notop']['url'],
+                                              sha256=weights_dict['weights']['notop']['sha256']))
 
     def get_batch_generator(self, image_generator, batch_size=8, lowercase=False):
         """
@@ -399,34 +399,44 @@ class Recognizer:
             if idx not in [self.blank_label_idx, -1]
         ])
 
-    def recognize_from_boxes(self,
-                             image,
-                             boxes,
-                             batch_size=5) -> typing.List[typing.Tuple[str, np.ndarray]]:
-        """Recognize text from an image using a set of bounding boxes.
+    def recognize_from_boxes(self, images, box_groups, **kwargs) -> typing.List[str]:
+        """Recognize text from images using lists of bounding boxes.
 
         Args:
-            image: A pre-cropped image containing characters
-            boxes: A list of boxes provided as four coordinates
-            batch_size: The prediction batch size
+            images: A list of input images, supplied as numpy arrays with shape
+                (H, W, 3).
+            boxes: A list of groups of boxes, one for each image
         """
+        assert len(box_groups) == len(images), \
+            'You must provide the same number of box groups as images.'
         crops = []
-        image = tools.read(image)
-        for box in boxes:
-            crops.append(
-                tools.warpBox(image=image,
-                              box=box,
-                              target_height=self.model.input_shape[1],
-                              target_width=self.model.input_shape[2]))
-        crops = np.array(
-            [cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY)[..., np.newaxis] for crop in crops])
-        X = crops.astype('float32') / 255
-        predictions = []
-        for index in range(0, len(X), batch_size):
-            y = self.prediction_model.predict(X[index:index + batch_size])
-            predictions.extend([
-                ''.join(
-                    [self.alphabet[idx] for idx in row if idx not in [self.blank_label_idx, -1]])
-                for row in y
-            ])
-        return list(zip(predictions, boxes))
+        start_end = []
+        for image, boxes in zip(images, box_groups):
+            image = tools.read(image)
+            if self.prediction_model.input_shape[-1] == 1 and image.shape[-1] == 3:
+                # Convert color to grayscale
+                image = cv2.cvtColor(image, code=cv2.COLOR_RGB2GRAY)
+            for box in boxes:
+                crops.append(
+                    tools.warpBox(image=image,
+                                  box=box,
+                                  target_height=self.model.input_shape[1],
+                                  target_width=self.model.input_shape[2]))
+            start = 0 if not start_end else start_end[-1][1]
+            start_end.append((start, start + len(boxes)))
+        X = np.float32(crops) / 255
+        if len(X.shape) == 3:
+            X = X[..., np.newaxis]
+        predictions = [
+            ''.join([self.alphabet[idx] for idx in row if idx not in [self.blank_label_idx, -1]])
+            for row in self.prediction_model.predict(X, **kwargs)
+        ]
+        return [predictions[start:end] for start, end in start_end]
+
+    def compile(self, *args, **kwargs):
+        """Compile the training model."""
+        if 'optimizer' not in kwargs:
+            kwargs['optimizer'] = 'RMSprop'
+        if 'loss' not in kwargs:
+            kwargs['loss'] = lambda _, y_pred: y_pred
+        self.training_model.compile(*args, **kwargs)

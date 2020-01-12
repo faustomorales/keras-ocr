@@ -7,7 +7,7 @@ def test_pipeline():
     image = keras_ocr.tools.read('tests/test_image.jpg')
 
     # Predictions is a list of (text, box) tuples.
-    predictions = pipeline.recognize(image=image)
+    predictions = pipeline.recognize(images=[image])[0]
 
     assert len(predictions) == 1
     assert predictions[0][0] == 'eventdock'

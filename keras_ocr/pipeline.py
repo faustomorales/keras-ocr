@@ -1,5 +1,5 @@
 # pylint: disable=too-few-public-methods
-import cv2
+import numpy as np
 
 from . import detection, recognition, tools
 
@@ -10,8 +10,11 @@ class Pipeline:
     Args:
         detector: The detector to use
         recognizer: The recognizer to use
+        scale: The scale factor to apply to input images
+        max_size: The maximum single-side dimension of images for
+            inference.
     """
-    def __init__(self, detector=None, recognizer=None, scale=2):
+    def __init__(self, detector=None, recognizer=None, scale=2, max_size=2048):
         if detector is None:
             detector = detection.Detector()
         if recognizer is None:
@@ -19,36 +22,46 @@ class Pipeline:
         self.scale = scale
         self.detector = detector
         self.recognizer = recognizer
+        self.max_size = max_size
 
-    def recognize(self, image, detection_kwargs=None, recognition_kwargs=None):
+    def recognize(self, images, detection_kwargs=None, recognition_kwargs=None):
         """Run the pipeline on a single image.
 
         Args:
-            image: The image to parse (can be an actual image or a fielpath)
+            image: The image to parse (can be an actual image or a filepath)
             detection_kwargs: Arguments to pass to the detector call
             recognition_kwargs: Arguments to pass to the recognizer call
 
         Returns:
-            A list of (text, box) tuples.
+            A list of lists of (text, box) tuples.
         """
-        image = tools.read(image)
 
-        if self.scale != 1:
-            image = cv2.resize(image,
-                               dsize=(image.shape[1] * self.scale, image.shape[0] * self.scale))
-
+        # Make sure we have an image array to start with.
+        if not isinstance(images, np.ndarray):
+            images = [tools.read(image) for image in images]
+        # This turns images into (image, scale) tuples temporarily
+        images = [
+            tools.resize_image(image, max_scale=self.scale, max_size=self.max_size)
+            for image in images
+        ]
+        max_height, max_width = np.array([image.shape[:2] for image, scale in images]).max(axis=0)
+        scales = [scale for _, scale in images]
+        images = np.array(
+            [tools.pad(image, width=max_width, height=max_height) for image, _ in images])
         if detection_kwargs is None:
             detection_kwargs = {}
         if recognition_kwargs is None:
             recognition_kwargs = {}
-
-        # Predictions is a list of (string, box) tuples.
-        boxes = self.detector.detect(images=[image], **detection_kwargs)[0]
-        predictions = self.recognizer.recognize_from_boxes(image=image,
-                                                           boxes=boxes,
-                                                           **recognition_kwargs)
-        if self.scale != 1:
-            predictions = tools.adjust_boxes(boxes=predictions,
-                                             boxes_format='predictions',
-                                             scale=1 / self.scale)
-        return predictions
+        box_groups = self.detector.detect(images=images, **detection_kwargs)
+        prediction_groups = self.recognizer.recognize_from_boxes(images=images,
+                                                                 box_groups=box_groups,
+                                                                 **recognition_kwargs)
+        box_groups = [
+            tools.adjust_boxes(boxes=boxes, boxes_format='boxes', scale=1 /
+                               scale) if scale != 1 else boxes
+            for boxes, scale in zip(box_groups, scales)
+        ]
+        return [
+            list(zip(predictions, boxes))
+            for predictions, boxes in zip(prediction_groups, box_groups)
+        ]

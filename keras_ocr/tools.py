@@ -35,13 +35,7 @@ def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
-def warpBox(image,
-            box,
-            target_height,
-            target_width,
-            margin=0,
-            cval=(0, 0, 0),
-            return_transform=False):
+def warpBox(image, box, target_height, target_width, margin=0, cval=None, return_transform=False):
     """Warp a boxed region in an image given by a set of four points into
     a rectangle with a specified width and height. Useful for taking crops
     of distorted or rotated text.
@@ -55,6 +49,8 @@ def warpBox(image,
         return_transform: Whether to return the transformation
             matrix with the image.
     """
+    if cval is None:
+        cval = (0, 0, 0) if len(image.shape) == 3 else 0
     box, _ = get_rotated_box(box)
     _, _, w, h = cv2.boundingRect(box)
     scale = min(target_width / w, target_height / h)
@@ -63,7 +59,9 @@ def warpBox(image,
                                                   [scale * w - margin, scale * h - margin],
                                                   [margin, scale * h - margin]]).astype('float32'))
     crop = cv2.warpPerspective(image, M, dsize=(int(scale * w), int(scale * h)))
-    full = (np.zeros((target_height, target_width, 3)) + cval).astype('uint8')
+    target_shape = (target_height, target_width, 3) if len(image.shape) == 3 else (target_height,
+                                                                                   target_width)
+    full = (np.zeros(target_shape) + cval).astype('uint8')
     full[:crop.shape[0], :crop.shape[1]] = crop
     if return_transform:
         return full, M
@@ -221,6 +219,46 @@ def augment(boxes,
     else:
         raise NotImplementedError(f'Unsupported boxes format: {boxes_format}')
     return image_augmented, boxes_augmented
+
+
+def pad(image, width: int, height: int, cval: int = 255):
+    """Pad an image to a desired size. Raises an exception if image
+    is larger than desired size.
+
+    Args:
+        image: The input image
+        width: The output width
+        height: The output height
+        cval: The value to use for filling the image.
+    """
+    if len(image.shape) == 3:
+        output_shape = (height, width, image.shape[-1])
+    else:
+        output_shape = (height, width)
+    assert height >= output_shape[0], 'Input height must be less than output height.'
+    assert width >= output_shape[1], 'Input width must be less than output width.'
+    padded = np.zeros(output_shape, dtype=image.dtype) + cval
+    padded[:image.shape[0], :image.shape[1]] = image
+    return padded
+
+
+def resize_image(image, max_scale, max_size):
+    """Obtain the optimal resized image subject to a maximum scale
+    and maximum size.
+
+    Args:
+        image: The input image
+        max_scale: The maximum scale to apply
+        max_size: The maximum size to return
+    """
+    if max(image.shape) * max_scale > max_size:
+        # We are constrained by the maximum size
+        scale = max_size / max(image.shape)
+    else:
+        # We are contrained by scale
+        scale = max_scale
+    return cv2.resize(image,
+                      dsize=(int(image.shape[1] * scale), int(image.shape[0] * scale))), scale
 
 
 # pylint: disable=too-many-arguments
