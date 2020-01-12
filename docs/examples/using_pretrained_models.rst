@@ -13,17 +13,23 @@ The below example shows how to use the pretrained models.
     # weights for the detector and recognizer.
     pipeline = keras_ocr.pipeline.Pipeline()
 
-    image = keras_ocr.tools.read('../tests/test_image.jpg')
+    # Get a set of three example images
+    images = [
+        keras_ocr.tools.read(url) for url in [
+            'https://upload.wikimedia.org/wikipedia/commons/b/bd/Army_Reserves_Recruitment_Banner_MOD_45156284.jpg',
+            'https://upload.wikimedia.org/wikipedia/commons/e/e8/FseeG2QeLXo.jpg',
+            'https://upload.wikimedia.org/wikipedia/commons/b/b4/EUBanana-500x112.jpg'
+        ]
+    ]
 
-    # Predictions is a list of (text, box) tuples.
-    predictions = pipeline.recognize(images=[image])[0]
+    # Each list of predictions in prediction_groups is a list of
+    # (word, box) tuples.
+    prediction_groups = pipeline.recognize(images)
 
-    # Plot the results.
-    fig, ax = plt.subplots()
-    ax.imshow(keras_ocr.tools.drawBoxes(image, predictions, boxes_format='predictions'))
-    for text, box in predictions:
-        ax.annotate(s=text, xy=box[0], xytext=box[0] - 50, arrowprops={'arrowstyle': '->'})
-    plt.show()
+    # Plot the predictions
+    fig, axs = plt.subplots(nrows=len(images), figsize=(20, 20))
+    for ax, image, predictions in zip(axs, images, prediction_groups):
+        keras_ocr.tools.drawAnnotations(image=image, predictions=predictions, ax=ax)
 
-.. image:: ../../tests/test_image_labeled.jpg
-   :width: 512
+.. image:: ../_static/readme_labeled.jpg
+   :width: 768

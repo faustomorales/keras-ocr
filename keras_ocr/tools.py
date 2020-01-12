@@ -10,6 +10,7 @@ import cv2
 import imgaug
 import numpy as np
 import validators
+import matplotlib.pyplot as plt
 from shapely import geometry
 from scipy import spatial
 
@@ -88,6 +89,46 @@ def combine_line(line):
     # Put the points in clockwise order
     box = np.array(np.roll(box, 4 - box.sum(axis=1).argmin(), 0))
     return box, text
+
+
+def drawAnnotations(image, predictions, ax=None):
+    """Draw text annotations onto image.
+
+    Args:
+        image: The image on which to draw
+        predictions: The predictions as provided by `pipeline.recognize`.
+        ax: A matplotlib axis on which to draw.
+    """
+    if ax is None:
+        _, ax = plt.subplots()
+    ax.imshow(drawBoxes(image=image, boxes=predictions, boxes_format='predictions'))
+    predictions = sorted(predictions, key=lambda p: p[1][:, 1].min())
+    left = []
+    right = []
+    for word, box in predictions:
+        if box[:, 0].min() < image.shape[1] / 2:
+            left.append((word, box))
+        else:
+            right.append((word, box))
+    ax.set_yticks([])
+    ax.set_xticks([])
+    for side, group in zip(['left', 'right'], [left, right]):
+        for index, (text, box) in enumerate(group):
+            y = 1 - (index / len(group))
+            xy = box[0] / np.array([image.shape[1], image.shape[0]])
+            xy[1] = 1 - xy[1]
+            ax.annotate(s=text,
+                        xy=xy,
+                        xytext=(-0.05 if side == 'left' else 1.05, y),
+                        xycoords='axes fraction',
+                        arrowprops={
+                            'arrowstyle': '->',
+                            'color': 'r'
+                        },
+                        color='r',
+                        fontsize=14,
+                        horizontalalignment='right' if side == 'left' else 'left')
+    return ax
 
 
 def drawBoxes(image, boxes, color=(255, 0, 0), thickness=5, boxes_format='boxes'):
