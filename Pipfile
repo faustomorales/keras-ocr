@@ -4,11 +4,10 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-ipython = "==7.3.*"
-jupyterlab = "==0.35.*"
+ipython = "*"
+jupyterlab = "*"
 numpy = "*"
 matplotlib = "*"
-cairocffi = "*"
 tensorflow = "*"
 keras = "*"
 mypy = "*"
