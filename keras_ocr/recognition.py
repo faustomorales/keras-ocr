@@ -371,7 +371,7 @@ class Recognizer:
                 len(sentence) <= max_string_length
                 for sentence in sentences), 'A sentence is longer than this model can predict.'
             label_length = np.array([len(sentence) for sentence in sentences])[:, np.newaxis]
-            labels = np.array([[self.alphabet.index(c) for c in sentence] + [self.blank_label_idx] *
+            labels = np.array([[self.alphabet.index(c) for c in sentence] + [-1] *
                                (max_string_length - len(sentence)) for sentence in sentences])
             input_length = np.ones((batch_size, 1)) * max_string_length
             if len(batch[0]) == 3:
