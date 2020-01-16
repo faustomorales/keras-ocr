@@ -28,7 +28,7 @@ class Pipeline:
         """Run the pipeline on a single image.
 
         Args:
-            image: The image to parse (can be an actual image or a filepath)
+            images: The images to parse (can be a list of actual images or a list of filepaths)
             detection_kwargs: Arguments to pass to the detector call
             recognition_kwargs: Arguments to pass to the recognizer call
 
