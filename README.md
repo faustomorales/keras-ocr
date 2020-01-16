@@ -50,6 +50,35 @@ for ax, image, predictions in zip(axs, images, prediction_groups):
 
 ![example of labeled image](https://raw.githubusercontent.com/faustomorales/keras-ocr/master/docs/_static/readme_labeled.jpg)
 
+Single Image
+
+```python
+import matplotlib.pyplot as plt
+
+import keras_ocr
+
+# keras-ocr will automatically download pretrained
+# weights for the detector and recognizer.
+pipeline = keras_ocr.pipeline.Pipeline()
+
+# Example image
+image =  keras_ocr.tools.read('sample.jpg')
+
+# Each list of predictions in prediction_groups is a list of
+# (word, box) tuples.
+prediction_groups = pipeline.recognize(images=[image])
+predictions = prediction_groups[0]
+
+# Plot the predictions
+fig, ax = plt.subplots(figsize=(15, 30))
+ax.imshow(keras_ocr.tools.drawBoxes(image, predictions, boxes_format='predictions'))
+for text, box in predictions:
+    ax.annotate(s=text, xy=box[0], xytext=box[0] - 50, arrowprops={'arrowstyle': '->'})
+plt.show()
+```
+
+
+
 
 ## Comparing keras-ocr and other OCR approaches
 You may be wondering how the models in this package compare to existing cloud OCR APIs. We provide some metrics below and [the notebook](https://drive.google.com/file/d/1FMS3aUZnBU4Tc6bosBPnrjdMoSrjZXRp/view?usp=sharing) used to compute them using the first 1,000 images in the COCO-Text validation set. We limited it to 1,000 because the Google Cloud free tier is for 1,000 calls a month at the time of this writing. As always, caveats apply:
