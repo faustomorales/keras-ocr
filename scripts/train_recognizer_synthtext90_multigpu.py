@@ -129,7 +129,7 @@ if __name__ == '__main__':
         ), math.ceil(len(filepaths) / args.batch_size))
         for filepaths, augmenter in [(training_filepaths, augmenter), (validation_filepaths, None)]
     ]
-    SynthText90_MAX_STRING_LENGTH = 48
+    SynthText90_MAX_STRING_LENGTH = recognizer.training_model.input_shape[1][1]
     training_generator, validation_generator = [
         tf.data.Dataset.from_generator(
             functools.partial(recognizer.get_batch_generator,
