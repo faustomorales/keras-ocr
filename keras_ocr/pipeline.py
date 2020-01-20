@@ -25,7 +25,7 @@ class Pipeline:
         self.max_size = max_size
 
     def recognize(self, images, detection_kwargs=None, recognition_kwargs=None):
-        """Run the pipeline on a single image.
+        """Run the pipeline on one or multiples images.
 
         Args:
             images: The images to parse (can be a list of actual images or a list of filepaths)
