@@ -129,13 +129,14 @@ if __name__ == '__main__':
         ), math.ceil(len(filepaths) / args.batch_size))
         for filepaths, augmenter in [(training_filepaths, augmenter), (validation_filepaths, None)]
     ]
+
     training_generator, validation_generator = [
         tf.data.Dataset.from_generator(
             functools.partial(recognizer.get_batch_generator,
                               image_generator=image_generator,
                               batch_size=args.batch_size),
             output_types=((tf.float32, tf.int64, tf.float64, tf.int64), tf.float64),
-            output_shapes=((tf.TensorShape([None, 31, 200, 1]), tf.TensorShape([None, 48]),
+            output_shapes=((tf.TensorShape([None, 31, 200, 1]), tf.TensorShape([None, recognizer.training_model.input_shape[1][1]]), 
                             tf.TensorShape([None,
                                             1]), tf.TensorShape([None,
                                                                  1])), tf.TensorShape([None, 1])))
