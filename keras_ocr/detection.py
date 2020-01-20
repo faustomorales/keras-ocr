@@ -552,11 +552,13 @@ def build_torch_model(weights_path=None):
 
 PRETRAINED_WEIGHTS = {
     ('clovaai_general', True): {
-        'url': 'https://storage.googleapis.com/keras-ocr/craft_mlt_25k.pth',
+        'url': 'https://www.mediafire.com/file/qh2ullnnywi320s/craft_mlt_25k.pth/file',
+        'filename': 'craft_mlt_25k.pth',
         'sha256': '4a5efbfb48b4081100544e75e1e2b57f8de3d84f213004b14b85fd4b3748db17'
     },
     ('clovaai_general', False): {
-        'url': 'https://storage.googleapis.com/keras-ocr/craft_mlt_25k.h5',
+        'url': 'https://www.mediafire.com/file/mepzf3sq7u7nve9/craft_mlt_25k.h5/file',
+        'filename': 'craft_mlt_25k.h5',
         'sha256': '7283ce2ff05a0617e9740c316175ff3bacdd7215dbdf1a726890d5099431f899'
     }
 }
@@ -584,6 +586,7 @@ class Detector:
                 'Selected weights configuration not found.'
             weights_config = PRETRAINED_WEIGHTS[pretrained_key]
             weights_path = tools.download_and_verify(url=weights_config['url'],
+                                                     filename=weights_config['filename'],
                                                      sha256=weights_config['sha256'])
         else:
             weights_path = None

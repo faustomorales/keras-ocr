@@ -29,11 +29,13 @@ PRETRAINED_WEIGHTS = {
         'build_params': DEFAULT_BUILD_PARAMS,
         'weights': {
             'notop': {
-                'url': 'https://storage.googleapis.com/keras-ocr/crnn_kurapan_notop.h5',
+                'url': 'https://www.mediafire.com/file/n9yfn5wueu82rgf/crnn_kurapan_notop.h5/file',
+                'filename': 'crnn_kurapan_notop.h5',
                 'sha256': '027fd2cced3cbea0c4f5894bb8e9e85bac04f11daf96b8fdcf1e4ee95dcf51b9'
             },
             'top': {
-                'url': 'https://storage.googleapis.com/keras-ocr/crnn_kurapan.h5',
+                'url': 'https://www.mediafire.com/file/pkj2p29b1f6fpil/crnn_kurapan.h5/file',
+                'filename': 'crnn_kurapan.h5',
                 'sha256': 'a7d8086ac8f5c3d6a0a828f7d6fbabcaf815415dd125c32533013f85603be46d'
             }
         }
@@ -324,12 +326,14 @@ class Recognizer:
             if alphabet == weights_dict['alphabet']:
                 self.model.load_weights(
                     tools.download_and_verify(url=weights_dict['weights']['top']['url'],
+                                              filename=weights_dict['weights']['top']['filename'],
                                               sha256=weights_dict['weights']['top']['sha256']))
             else:
                 print('Provided alphabet does not match pretrained alphabet. '
                       'Using backbone weights only.')
                 self.backbone.load_weights(
                     tools.download_and_verify(url=weights_dict['weights']['notop']['url'],
+                                              filename=weights_dict['weights']['notop']['filename'],
                                               sha256=weights_dict['weights']['notop']['sha256']))
 
     def get_batch_generator(self, image_generator, batch_size=8, lowercase=False):

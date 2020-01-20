@@ -4,9 +4,9 @@ WORKDIR /usr/src
 # change.
 RUN mkdir -p /root/.keras-ocr && ( \
     cd /root/.keras-ocr && \
-    curl -O https://storage.googleapis.com/keras-ocr/craft_mlt_25k.pth && \
-    curl -O https://storage.googleapis.com/keras-ocr/craft_mlt_25k.h5 && \
-    curl -O https://storage.googleapis.com/keras-ocr/crnn_kurapan.h5 \
+    curl -L -o craft_mlt_25k.pth https://www.mediafire.com/file/qh2ullnnywi320s/craft_mlt_25k.pth/file && \
+    curl -L -o craft_mlt_25k.h5 https://www.mediafire.com/file/mepzf3sq7u7nve9/craft_mlt_25k.h5/file && \
+    curl -L -o crnn_kurapan.h5 https://www.mediafire.com/file/pkj2p29b1f6fpil/crnn_kurapan.h5/file \
     )
 COPY ./Pipfile* ./
 COPY ./Makefile ./
