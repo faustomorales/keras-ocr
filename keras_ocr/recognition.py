@@ -429,6 +429,8 @@ class Recognizer:
                                   target_width=self.model.input_shape[2]))
             start = 0 if not start_end else start_end[-1][1]
             start_end.append((start, start + len(boxes)))
+        if not crops:
+            return [[] for image in images]
         X = np.float32(crops) / 255
         if len(X.shape) == 3:
             X = X[..., np.newaxis]
