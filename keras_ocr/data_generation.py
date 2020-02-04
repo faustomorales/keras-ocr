@@ -264,6 +264,8 @@ def convert_image_generator_to_recognizer_input(image_generator,
                                  target_width=target_width,
                                  target_height=target_height,
                                  margin=margin)
+            if augmenter is not None:
+                crop = augmenter(images=[crop])[0]
             yield crop, sentence
 
 
