@@ -239,6 +239,7 @@ def convert_image_generator_to_recognizer_input(image_generator,
                                                 max_string_length,
                                                 target_width,
                                                 target_height,
+                                                augmenter=None,
                                                 margin=0):
     """Convert an image generator created by get_image_generator
     to (image, sentence) tuples for training a recognizer.
@@ -248,6 +249,7 @@ def convert_image_generator_to_recognizer_input(image_generator,
         max_string_length: The maximum string length to allow
         target_width: The width to warp lines into
         target_height: The height to warp lines into
+        augmenter: An image augmenter to be applied to backgrounds
         margin: The margin to apply around a single line.
     """
     while True:
