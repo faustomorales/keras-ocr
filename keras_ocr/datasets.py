@@ -255,7 +255,7 @@ def get_icdar_2019_semisupervised_dataset(cache_dir=None):
             filename='ImagesPart1.zip',
             sha256='1968894ef93b97f3ef4c97880b6dce85b1851f4d778e253f4e7265b152a4986f')
         with zipfile.ZipFile(training_zip_1) as zfile:
-            zfile.extractall(training_dir_1)
+            zfile.extractall(main_dir)
     if len(glob.glob(os.path.join(training_dir_2, '*'))) != 5000:
         training_zip_2 = tools.download_and_verify(
             url='https://www.mediafire.com/file/i2snljkfm4t2ojm/ImagesPart2.zip/file',  # pylint: disable=line-too-long
@@ -263,7 +263,7 @@ def get_icdar_2019_semisupervised_dataset(cache_dir=None):
             filename='ImagesPart2.zip',
             sha256='5651b9137e877f731bfebb2a8b75042e26baa389d2fb1cfdbb9e3da343757241')
         with zipfile.ZipFile(training_zip_2) as zfile:
-            zfile.extractall(training_dir_2)
+            zfile.extractall(main_dir)
     ground_truth = tools.download_and_verify(
         url='http://www.mediafire.com/file/jshjv9kntxjzhva/mlt2019_dataset.json/file',  # pylint: disable=line-too-long
         cache_dir=main_dir,
