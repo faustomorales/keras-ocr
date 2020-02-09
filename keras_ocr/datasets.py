@@ -8,6 +8,7 @@ import json
 import os
 
 import tqdm
+import PIL.Image
 import numpy as np
 
 from . import tools
@@ -271,6 +272,10 @@ def get_icdar_2019_semisupervised_dataset(cache_dir=None):
         sha256='179452117a6a4afe519fa2f90ee7c2cddeb18e35c1df3036ae231cd280057684')
     with open(ground_truth, 'r') as f:
         character_level_dataset = json.loads(f.read())['dataset']
+    for gif_filepath in glob.glob(os.path.join(main_dir, '**', '*.gif')):
+        # We need to do this because we cannot easily read GIFs.
+        PIL.Image.open(gif_filepath).convert('RGB').save(os.path.splitext(gif_filepath)[0] + '.jpg')
+        os.remove(gif_filepath)
     return [(os.path.join(main_dir,
                           entry['filepath']), [[(np.array(box), None) for box in line['line']]
                                                for line in entry['lines']
