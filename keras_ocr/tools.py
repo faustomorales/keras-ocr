@@ -436,9 +436,12 @@ def get_rotated_box(
         top-right, bottom-right, bottom-left order along
         with the angle of rotation about the bottom left corner.
     """
-    mp = geometry.MultiPoint(points=points)
-    pts = np.array(list(zip(*mp.minimum_rotated_rectangle.exterior.xy)))[:-1]  # noqa: E501
-
+    try:
+        mp = geometry.MultiPoint(points=points)
+        pts = np.array(list(zip(*mp.minimum_rotated_rectangle.exterior.xy)))[:-1]  # noqa: E501
+    except AttributeError:
+        # There weren't enough points for the minimum rotated rectangle function
+        pts = points
     # The code below is taken from
     # https://github.com/jrosebr1/imutils/blob/master/imutils/perspective.py
 
