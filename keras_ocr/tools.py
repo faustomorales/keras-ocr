@@ -470,3 +470,22 @@ def get_rotated_box(
 
     rotation = np.arctan((tl[0] - bl[0]) / (tl[1] - bl[1]))
     return pts, rotation
+
+
+def fix_line(line):
+    """Given a list of (box, character) tuples, return a revised
+    line with a consistent ordering of left-to-right or top-to-bottom,
+    with each box provided with (top-left, top-right, bottom-right, bottom-left)
+    ordering.
+
+    Returns:
+        A tuple that is the fixed line as well as a string indicating
+        whether the line is horizontal or vertical.
+    """
+    line = [(get_rotated_box(box)[0], character) for box, character in line]
+    centers = np.array([box.mean(axis=0) for box, _ in line])
+    sortedx = centers[:, 0].argsort()
+    sortedy = centers[:, 1].argsort()
+    if np.diff(centers[sortedy][:, 1]).sum() > np.diff(centers[sortedx][:, 0]).sum():
+        return [line[idx] for idx in sortedy], 'vertical'
+    return [line[idx] for idx in sortedx], 'horizontal'

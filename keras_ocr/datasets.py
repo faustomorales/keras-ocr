@@ -235,6 +235,49 @@ def get_icdar_2013_detector_dataset(cache_dir=None, skip_illegible=False):
     return dataset
 
 
+def get_icdar_2019_semisupervised_dataset(cache_dir=None):
+    """EXPERIMENTAL. Get a semisupervised labeled version
+    of the ICDAR 2019 dataset. Only images with Latin-only
+    scripts are available at this time.
+
+    Args:
+        cache_dir: The cache directory to use.
+    """
+    if cache_dir is None:
+        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+    main_dir = os.path.join(cache_dir, 'icdar2019')
+    training_dir_1 = os.path.join(main_dir, 'ImagesPart1')
+    training_dir_2 = os.path.join(main_dir, 'ImagesPart2')
+    if len(glob.glob(os.path.join(training_dir_1, '*'))) != 5000:
+        training_zip_1 = tools.download_and_verify(
+            url='https://www.mediafire.com/file/snekaezeextc3ee/ImagesPart1.zip/file',  # pylint: disable=line-too-long
+            cache_dir=main_dir,
+            filename='ImagesPart1.zip',
+            sha256='1968894ef93b97f3ef4c97880b6dce85b1851f4d778e253f4e7265b152a4986f')
+        with zipfile.ZipFile(training_zip_1) as zfile:
+            zfile.extractall(training_dir_1)
+    if len(glob.glob(os.path.join(training_dir_2, '*'))) != 5000:
+        training_zip_2 = tools.download_and_verify(
+            url='https://www.mediafire.com/file/i2snljkfm4t2ojm/ImagesPart2.zip/file',  # pylint: disable=line-too-long
+            cache_dir=main_dir,
+            filename='ImagesPart2.zip',
+            sha256='5651b9137e877f731bfebb2a8b75042e26baa389d2fb1cfdbb9e3da343757241')
+        with zipfile.ZipFile(training_zip_2) as zfile:
+            zfile.extractall(training_dir_2)
+    ground_truth = tools.download_and_verify(
+        url='https://www.mediafire.com/file/j4vqszoalf7odl2/mlt2019_dataset.json/file',  # pylint: disable=line-too-long
+        cache_dir=main_dir,
+        filename='mlt2019_dataset.json',
+        sha256='179452117a6a4afe519fa2f90ee7c2cddeb18e35c1df3036ae231cd280057684')
+    with open(ground_truth, 'r') as f:
+        character_level_dataset = json.loads(f.read())['dataset']
+    return [(os.path.join(cache_dir,
+                          entry['filepath']), [[(np.array(box), None) for box in line['line']]
+                                               for line in entry['lines']
+                                               if line['line']], entry['percent_complete'])
+            for entry in character_level_dataset if entry['percent_complete'] > 0.5]
+
+
 def get_detector_image_generator(labels, width, height, augmenter=None, area_threshold=0.5):
     """Generated augmented (image, lines) tuples from a list
     of (filepath, lines, confidence) tuples. Confidence is
@@ -253,7 +296,7 @@ def get_detector_image_generator(labels, width, height, augmenter=None, area_thr
     for index in itertools.cycle(range(len(labels))):
         if index == 0:
             random.shuffle(labels)
-        image_filepath, lines, _ = labels[index]
+        image_filepath, lines, confidence = labels[index]
         image = tools.read(image_filepath)
         if augmenter is not None:
             image, lines = tools.augment(boxes=lines,
@@ -267,7 +310,7 @@ def get_detector_image_generator(labels, width, height, augmenter=None, area_thr
                                  mode='letterbox',
                                  return_scale=True)
         lines = tools.adjust_boxes(boxes=lines, boxes_format='lines', scale=scale)
-        yield image, lines
+        yield image, lines, confidence
 
 
 def get_recognizer_image_generator(labels, height, width, alphabet, augmenter=None):
