@@ -271,7 +271,7 @@ def get_icdar_2019_semisupervised_dataset(cache_dir=None):
         sha256='179452117a6a4afe519fa2f90ee7c2cddeb18e35c1df3036ae231cd280057684')
     with open(ground_truth, 'r') as f:
         character_level_dataset = json.loads(f.read())['dataset']
-    return [(os.path.join(cache_dir,
+    return [(os.path.join(main_dir,
                           entry['filepath']), [[(np.array(box), None) for box in line['line']]
                                                for line in entry['lines']
                                                if line['line']], entry['percent_complete'])
