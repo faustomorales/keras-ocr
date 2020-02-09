@@ -265,7 +265,7 @@ def get_icdar_2019_semisupervised_dataset(cache_dir=None):
         with zipfile.ZipFile(training_zip_2) as zfile:
             zfile.extractall(training_dir_2)
     ground_truth = tools.download_and_verify(
-        url='https://www.mediafire.com/file/j4vqszoalf7odl2/mlt2019_dataset.json/file',  # pylint: disable=line-too-long
+        url='http://www.mediafire.com/file/jshjv9kntxjzhva/mlt2019_dataset.json/file',  # pylint: disable=line-too-long
         cache_dir=main_dir,
         filename='mlt2019_dataset.json',
         sha256='179452117a6a4afe519fa2f90ee7c2cddeb18e35c1df3036ae231cd280057684')
