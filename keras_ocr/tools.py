@@ -394,6 +394,11 @@ def sha256sum(filename):
     return h.hexdigest()
 
 
+def get_default_cache_dir():
+    return os.environ.get('KERAS_OCR_CACHE_DIR', os.path.expanduser(os.path.join('~',
+                                                                                 '.keras-ocr')))
+
+
 def download_and_verify(url, sha256=None, cache_dir=None, verbose=True, filename=None):
     """Download a file to a cache directory and verify it with a sha256
     hash.
@@ -409,7 +414,7 @@ def download_and_verify(url, sha256=None, cache_dir=None, verbose=True, filename
             derived from the URL.
     """
     if cache_dir is None:
-        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+        cache_dir = get_default_cache_dir()
     if filename is None:
         filename = os.path.basename(urllib.parse.urlparse(url).path)
     filepath = os.path.join(cache_dir, filename)

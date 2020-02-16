@@ -53,7 +53,7 @@ def get_cocotext_recognizer_dataset(split='train',
     """
     assert split in ['train', 'val', 'trainval'], f'Unsupported split: {split}'
     if cache_dir is None:
-        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+        cache_dir = tools.get_default_cache_dir()
     main_dir = os.path.join(cache_dir, 'coco-text')
     images_dir = os.path.join(main_dir, 'images')
     labels_zip = tools.download_and_verify(
@@ -112,7 +112,7 @@ def get_born_digital_recognizer_dataset(split='train', cache_dir=None):
     """
     data = []
     if cache_dir is None:
-        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+        cache_dir = tools.get_default_cache_dir()
     main_dir = os.path.join(cache_dir, 'borndigital')
     assert split in ['train', 'traintest', 'test'], f'Unsupported split: {split}'
     if split in ['train', 'traintest']:
@@ -188,7 +188,7 @@ def get_icdar_2013_detector_dataset(cache_dir=None, skip_illegible=False):
         for future support for weakly supervised cases.
     """
     if cache_dir is None:
-        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+        cache_dir = tools.get_default_cache_dir()
     main_dir = os.path.join(cache_dir, 'icdar2013')
     training_images_dir = os.path.join(main_dir, 'Challenge2_Training_Task12_Images')
     training_zip_images_path = tools.download_and_verify(
@@ -245,7 +245,7 @@ def get_icdar_2019_semisupervised_dataset(cache_dir=None):
         cache_dir: The cache directory to use.
     """
     if cache_dir is None:
-        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+        cache_dir = tools.get_default_cache_dir()
     main_dir = os.path.join(cache_dir, 'icdar2019')
     training_dir_1 = os.path.join(main_dir, 'ImagesPart1')
     training_dir_2 = os.path.join(main_dir, 'ImagesPart2')
