@@ -96,7 +96,7 @@ def combine_line(line):
     Returns:
         A (box, text) tuple
     """
-    text = ''.join([character for _, character in line])
+    text = ''.join([character if character is not None else '' for _, character in line])
     box = np.concatenate([coords[:2] for coords, _ in line] +
                          [np.array([coords[3], coords[2]])
                           for coords, _ in reversed(line)]).astype('float32')

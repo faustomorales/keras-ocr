@@ -8,6 +8,7 @@ import json
 import os
 
 import tqdm
+import imgaug
 import PIL.Image
 import numpy as np
 
@@ -283,7 +284,12 @@ def get_icdar_2019_semisupervised_dataset(cache_dir=None):
             for entry in character_level_dataset if entry['percent_complete'] > 0.5]
 
 
-def get_detector_image_generator(labels, width, height, augmenter=None, area_threshold=0.5):
+def get_detector_image_generator(labels,
+                                 width,
+                                 height,
+                                 augmenter=None,
+                                 area_threshold=0.5,
+                                 focused=False):
     """Generated augmented (image, lines) tuples from a list
     of (filepath, lines, confidence) tuples. Confidence is
     not used right now but is included for a future release
@@ -296,6 +302,8 @@ def get_detector_image_generator(labels, width, height, augmenter=None, area_thr
         height: The height to use for output images
         area_threshold: The area threshold to use to keep
             characters in augmented images.
+        focused: Whether to pre-crop images to width/height containing
+            a region containing text.
     """
     labels = labels.copy()
     for index in itertools.cycle(range(len(labels))):
@@ -303,6 +311,23 @@ def get_detector_image_generator(labels, width, height, augmenter=None, area_thr
             random.shuffle(labels)
         image_filepath, lines, confidence = labels[index]
         image = tools.read(image_filepath)
+        if focused:
+            boxes = [tools.combine_line(line)[0] for line in lines]
+            selected = np.array(boxes[np.random.choice(len(boxes))])
+            left, top = selected.min(axis=0)
+            left -= np.random.randint(0, min(left, width / 2))
+            top -= np.random.randint(0, min(top, height / 2))
+            image, lines = tools.augment(boxes=lines,
+                                         augmenter=imgaug.augmenters.Sequential([
+                                             imgaug.augmenters.Crop(px=(int(top), 0, 0, int(left))),
+                                             imgaug.augmenters.CropToFixedSize(
+                                                 width=width,
+                                                 height=height,
+                                                 position='right-bottom')
+                                         ]),
+                                         boxes_format='lines',
+                                         image=image,
+                                         area_threshold=area_threshold)
         if augmenter is not None:
             image, lines = tools.augment(boxes=lines,
                                          boxes_format='lines',
