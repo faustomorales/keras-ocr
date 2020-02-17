@@ -82,6 +82,10 @@ def warpBox(image,
     return full
 
 
+def flatten(list_of_lists):
+    return [item for sublist in list_of_lists for item in sublist]
+
+
 def combine_line(line):
     """Combine a set of boxes in a line into a single bounding
     box.
