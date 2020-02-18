@@ -278,8 +278,8 @@ def get_icdar_2019_semisupervised_dataset(cache_dir=None):
         PIL.Image.open(gif_filepath).convert('RGB').save(os.path.splitext(gif_filepath)[0] + '.jpg')
         os.remove(gif_filepath)
     return [(os.path.join(main_dir,
-                          entry['filepath']), [[(np.array(box), None) for box in line['line']]
-                                               for line in entry['lines']
+                          entry['filepath']), [[(np.array(box).clip(0, np.inf), None)
+                                                for box in line['line']] for line in entry['lines']
                                                if line['line']], entry['percent_complete'])
             for entry in character_level_dataset if entry['percent_complete'] > 0.5]
 
@@ -314,7 +314,7 @@ def get_detector_image_generator(labels,
         if focused:
             boxes = [tools.combine_line(line)[0] for line in lines]
             selected = np.array(boxes[np.random.choice(len(boxes))])
-            left, top = selected.min(axis=0)
+            left, top = selected.min(axis=0).clip(0, np.inf).astype('int')
             if left > 0:
                 left -= np.random.randint(0, min(left, width / 2))
             if top > 0:
