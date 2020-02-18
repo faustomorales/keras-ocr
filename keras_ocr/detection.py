@@ -107,6 +107,8 @@ def compute_maps(heatmap, image_height, image_width, lines):
         line, orientation = tools.fix_line(line)
         previous_link_points = None
         for [(x1, y1), (x2, y2), (x3, y3), (x4, y4)], c in line:
+            x1, y1, x2, y2, x3, y3, x4, y4 = map(lambda v: max(v, 0),
+                                                 [x1, y1, x2, y2, x3, y3, x4, y4])
             if c == ' ':
                 previous_link_points = None
                 continue
