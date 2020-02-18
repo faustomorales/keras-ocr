@@ -315,8 +315,10 @@ def get_detector_image_generator(labels,
             boxes = [tools.combine_line(line)[0] for line in lines]
             selected = np.array(boxes[np.random.choice(len(boxes))])
             left, top = selected.min(axis=0)
-            left -= np.random.randint(0, min(left, width / 2))
-            top -= np.random.randint(0, min(top, height / 2))
+            if left > 0:
+                left -= np.random.randint(0, min(left, width / 2))
+            if top > 0:
+                top -= np.random.randint(0, min(top, height / 2))
             image, lines = tools.augment(boxes=lines,
                                          augmenter=imgaug.augmenters.Sequential([
                                              imgaug.augmenters.Crop(px=(int(top), 0, 0, int(left))),
