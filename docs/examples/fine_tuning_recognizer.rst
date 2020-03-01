@@ -121,3 +121,10 @@ Finally, run inference on a test sample.
 
 .. image:: ../_static/borndigital2.png
    :width: 256
+
+
+You can load weights back into a model using `recognizer.model.load_weights()`.
+
+.. code-block:: python
+
+    recognizer.model.load_weights('recognizer_borndigital.h5')
