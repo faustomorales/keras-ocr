@@ -54,7 +54,7 @@ With a set of fonts, backgrounds, and alphabet, we now build our data generators
 
 In order to create images, we need random strings. :code:`keras-ocr` has a simple method for this for English, but anything that generates strings of characters in your selected alphabet will do!
 
-The image generator generates `(image, lines)` tuples where `image` is a HxWx3 image and `lines` is a list of lines of text in the image where each line is itself a list of tuples of the form :code:`((x1, y1), (x2, y2), (x3, y3), (x4, y4), c)`. `c` is the character in the line and :code:`(x1, y2), (x2, y2), (x3, y3),
+The image generator generates `(image, lines)` tuples where `image` is a HxWx3 image and `lines` is a list of lines of text in the image where each line is itself a list of tuples of the form :code:`((x1, y1), (x2, y2), (x3, y3), (x4, y4), c)`. `c` is the character in the line and :code:`(x1, y1), (x2, y2), (x3, y3),
 (x4, y4)` define the bounding coordinates in clockwise order starting from the top left. You can replace this with your own generator, just be sure to match that function signature.
 
 We split our generators into train, validation, and test by separating the fonts and backgrounds used in each.
