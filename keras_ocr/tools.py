@@ -82,6 +82,10 @@ def warpBox(image,
     return full
 
 
+def flatten(list_of_lists):
+    return [item for sublist in list_of_lists for item in sublist]
+
+
 def combine_line(line):
     """Combine a set of boxes in a line into a single bounding
     box.
@@ -92,7 +96,7 @@ def combine_line(line):
     Returns:
         A (box, text) tuple
     """
-    text = ''.join([character for _, character in line])
+    text = ''.join([character if character is not None else '' for _, character in line])
     box = np.concatenate([coords[:2] for coords, _ in line] +
                          [np.array([coords[3], coords[2]])
                           for coords, _ in reversed(line)]).astype('float32')
@@ -394,6 +398,11 @@ def sha256sum(filename):
     return h.hexdigest()
 
 
+def get_default_cache_dir():
+    return os.environ.get('KERAS_OCR_CACHE_DIR', os.path.expanduser(os.path.join('~',
+                                                                                 '.keras-ocr')))
+
+
 def download_and_verify(url, sha256=None, cache_dir=None, verbose=True, filename=None):
     """Download a file to a cache directory and verify it with a sha256
     hash.
@@ -409,7 +418,7 @@ def download_and_verify(url, sha256=None, cache_dir=None, verbose=True, filename
             derived from the URL.
     """
     if cache_dir is None:
-        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+        cache_dir = get_default_cache_dir()
     if filename is None:
         filename = os.path.basename(urllib.parse.urlparse(url).path)
     filepath = os.path.join(cache_dir, filename)
@@ -436,9 +445,12 @@ def get_rotated_box(
         top-right, bottom-right, bottom-left order along
         with the angle of rotation about the bottom left corner.
     """
-    mp = geometry.MultiPoint(points=points)
-    pts = np.array(list(zip(*mp.minimum_rotated_rectangle.exterior.xy)))[:-1]  # noqa: E501
-
+    try:
+        mp = geometry.MultiPoint(points=points)
+        pts = np.array(list(zip(*mp.minimum_rotated_rectangle.exterior.xy)))[:-1]  # noqa: E501
+    except AttributeError:
+        # There weren't enough points for the minimum rotated rectangle function
+        pts = points
     # The code below is taken from
     # https://github.com/jrosebr1/imutils/blob/master/imutils/perspective.py
 
@@ -470,3 +482,22 @@ def get_rotated_box(
 
     rotation = np.arctan((tl[0] - bl[0]) / (tl[1] - bl[1]))
     return pts, rotation
+
+
+def fix_line(line):
+    """Given a list of (box, character) tuples, return a revised
+    line with a consistent ordering of left-to-right or top-to-bottom,
+    with each box provided with (top-left, top-right, bottom-right, bottom-left)
+    ordering.
+
+    Returns:
+        A tuple that is the fixed line as well as a string indicating
+        whether the line is horizontal or vertical.
+    """
+    line = [(get_rotated_box(box)[0], character) for box, character in line]
+    centers = np.array([box.mean(axis=0) for box, _ in line])
+    sortedx = centers[:, 0].argsort()
+    sortedy = centers[:, 1].argsort()
+    if np.diff(centers[sortedy][:, 1]).sum() > np.diff(centers[sortedx][:, 0]).sum():
+        return [line[idx] for idx in sortedy], 'vertical'
+    return [line[idx] for idx in sortedx], 'horizontal'

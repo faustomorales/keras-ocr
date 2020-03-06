@@ -8,6 +8,8 @@ import json
 import os
 
 import tqdm
+import imgaug
+import PIL.Image
 import numpy as np
 
 from . import tools
@@ -52,7 +54,7 @@ def get_cocotext_recognizer_dataset(split='train',
     """
     assert split in ['train', 'val', 'trainval'], f'Unsupported split: {split}'
     if cache_dir is None:
-        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+        cache_dir = tools.get_default_cache_dir()
     main_dir = os.path.join(cache_dir, 'coco-text')
     images_dir = os.path.join(main_dir, 'images')
     labels_zip = tools.download_and_verify(
@@ -111,7 +113,7 @@ def get_born_digital_recognizer_dataset(split='train', cache_dir=None):
     """
     data = []
     if cache_dir is None:
-        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+        cache_dir = tools.get_default_cache_dir()
     main_dir = os.path.join(cache_dir, 'borndigital')
     assert split in ['train', 'traintest', 'test'], f'Unsupported split: {split}'
     if split in ['train', 'traintest']:
@@ -187,7 +189,7 @@ def get_icdar_2013_detector_dataset(cache_dir=None, skip_illegible=False):
         for future support for weakly supervised cases.
     """
     if cache_dir is None:
-        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+        cache_dir = tools.get_default_cache_dir()
     main_dir = os.path.join(cache_dir, 'icdar2013')
     training_images_dir = os.path.join(main_dir, 'Challenge2_Training_Task12_Images')
     training_zip_images_path = tools.download_and_verify(
@@ -235,7 +237,59 @@ def get_icdar_2013_detector_dataset(cache_dir=None, skip_illegible=False):
     return dataset
 
 
-def get_detector_image_generator(labels, width, height, augmenter=None, area_threshold=0.5):
+def get_icdar_2019_semisupervised_dataset(cache_dir=None):
+    """EXPERIMENTAL. Get a semisupervised labeled version
+    of the ICDAR 2019 dataset. Only images with Latin-only
+    scripts are available at this time.
+
+    Args:
+        cache_dir: The cache directory to use.
+    """
+    if cache_dir is None:
+        cache_dir = tools.get_default_cache_dir()
+    main_dir = os.path.join(cache_dir, 'icdar2019')
+    training_dir_1 = os.path.join(main_dir, 'ImagesPart1')
+    training_dir_2 = os.path.join(main_dir, 'ImagesPart2')
+    if len(glob.glob(os.path.join(training_dir_1, '*'))) != 5000:
+        training_zip_1 = tools.download_and_verify(
+            url='https://www.mediafire.com/file/snekaezeextc3ee/ImagesPart1.zip/file',  # pylint: disable=line-too-long
+            cache_dir=main_dir,
+            filename='ImagesPart1.zip',
+            sha256='1968894ef93b97f3ef4c97880b6dce85b1851f4d778e253f4e7265b152a4986f')
+        with zipfile.ZipFile(training_zip_1) as zfile:
+            zfile.extractall(main_dir)
+    if len(glob.glob(os.path.join(training_dir_2, '*'))) != 5000:
+        training_zip_2 = tools.download_and_verify(
+            url='https://www.mediafire.com/file/i2snljkfm4t2ojm/ImagesPart2.zip/file',  # pylint: disable=line-too-long
+            cache_dir=main_dir,
+            filename='ImagesPart2.zip',
+            sha256='5651b9137e877f731bfebb2a8b75042e26baa389d2fb1cfdbb9e3da343757241')
+        with zipfile.ZipFile(training_zip_2) as zfile:
+            zfile.extractall(main_dir)
+    ground_truth = tools.download_and_verify(
+        url='http://www.mediafire.com/file/jshjv9kntxjzhva/mlt2019_dataset.json/file',  # pylint: disable=line-too-long
+        cache_dir=main_dir,
+        filename='mlt2019_dataset.json',
+        sha256='179452117a6a4afe519fa2f90ee7c2cddeb18e35c1df3036ae231cd280057684')
+    with open(ground_truth, 'r') as f:
+        character_level_dataset = json.loads(f.read())['dataset']
+    for gif_filepath in glob.glob(os.path.join(main_dir, '**', '*.gif')):
+        # We need to do this because we cannot easily read GIFs.
+        PIL.Image.open(gif_filepath).convert('RGB').save(os.path.splitext(gif_filepath)[0] + '.jpg')
+        os.remove(gif_filepath)
+    return [(os.path.join(main_dir,
+                          entry['filepath']), [[(np.array(box).clip(0, np.inf), None)
+                                                for box in line['line']] for line in entry['lines']
+                                               if line['line']], entry['percent_complete'])
+            for entry in character_level_dataset if entry['percent_complete'] > 0.5]
+
+
+def get_detector_image_generator(labels,
+                                 width,
+                                 height,
+                                 augmenter=None,
+                                 area_threshold=0.5,
+                                 focused=False):
     """Generated augmented (image, lines) tuples from a list
     of (filepath, lines, confidence) tuples. Confidence is
     not used right now but is included for a future release
@@ -248,13 +302,34 @@ def get_detector_image_generator(labels, width, height, augmenter=None, area_thr
         height: The height to use for output images
         area_threshold: The area threshold to use to keep
             characters in augmented images.
+        focused: Whether to pre-crop images to width/height containing
+            a region containing text.
     """
     labels = labels.copy()
     for index in itertools.cycle(range(len(labels))):
         if index == 0:
             random.shuffle(labels)
-        image_filepath, lines, _ = labels[index]
+        image_filepath, lines, confidence = labels[index]
         image = tools.read(image_filepath)
+        if focused:
+            boxes = [tools.combine_line(line)[0] for line in lines]
+            selected = np.array(boxes[np.random.choice(len(boxes))])
+            left, top = selected.min(axis=0).clip(0, np.inf).astype('int')
+            if left > 0:
+                left -= np.random.randint(0, min(left, width / 2))
+            if top > 0:
+                top -= np.random.randint(0, min(top, height / 2))
+            image, lines = tools.augment(boxes=lines,
+                                         augmenter=imgaug.augmenters.Sequential([
+                                             imgaug.augmenters.Crop(px=(int(top), 0, 0, int(left))),
+                                             imgaug.augmenters.CropToFixedSize(
+                                                 width=width,
+                                                 height=height,
+                                                 position='right-bottom')
+                                         ]),
+                                         boxes_format='lines',
+                                         image=image,
+                                         area_threshold=area_threshold)
         if augmenter is not None:
             image, lines = tools.augment(boxes=lines,
                                          boxes_format='lines',
@@ -267,7 +342,7 @@ def get_detector_image_generator(labels, width, height, augmenter=None, area_thr
                                  mode='letterbox',
                                  return_scale=True)
         lines = tools.adjust_boxes(boxes=lines, boxes_format='lines', scale=scale)
-        yield image, lines
+        yield image, lines, confidence
 
 
 def get_recognizer_image_generator(labels, height, width, alphabet, augmenter=None):
