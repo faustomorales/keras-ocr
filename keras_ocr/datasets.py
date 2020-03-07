@@ -289,7 +289,8 @@ def get_detector_image_generator(labels,
                                  height,
                                  augmenter=None,
                                  area_threshold=0.5,
-                                 focused=False):
+                                 focused=False,
+                                 min_area=None):
     """Generated augmented (image, lines) tuples from a list
     of (filepath, lines, confidence) tuples. Confidence is
     not used right now but is included for a future release
@@ -302,6 +303,8 @@ def get_detector_image_generator(labels,
         height: The height to use for output images
         area_threshold: The area threshold to use to keep
             characters in augmented images.
+        min_area: The minimum area for a character to be
+            included.
         focused: Whether to pre-crop images to width/height containing
             a region containing text.
     """
@@ -329,6 +332,7 @@ def get_detector_image_generator(labels,
                                          ]),
                                          boxes_format='lines',
                                          image=image,
+                                         min_area=min_area,
                                          area_threshold=area_threshold)
         if augmenter is not None:
             image, lines = tools.augment(boxes=lines,

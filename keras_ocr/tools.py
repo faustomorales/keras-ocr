@@ -214,7 +214,8 @@ def augment(boxes,
             image=None,
             boxes_format='boxes',
             image_shape=None,
-            area_threshold=0.5):
+            area_threshold=0.5,
+            min_area=None):
     """Augment an image and associated boxes together.
 
     Args:
@@ -225,6 +226,7 @@ def augment(boxes,
         image_shape: The shape of the input image if no image will be provided.
         area_threshold: Fraction of bounding box that we require to be
             in augmented image to include it.
+        min_area: The minimum area for a character to be included.
     """
     if image is None and image_shape is None:
         raise ValueError('One of "image" or "image_shape" must be provided.')
@@ -249,7 +251,8 @@ def augment(boxes,
         clipped[:, 0] = clipped[:, 0].clip(0, image_augmented_shape[1])
         clipped[:, 1] = clipped[:, 1].clip(0, image_augmented_shape[0])
         area_after = cv2.contourArea(np.int32(clipped)[:, np.newaxis, :])
-        return (area_after / area_before) >= area_threshold, clipped
+        return ((area_after / area_before) >= area_threshold) and (min_area is None or
+                                                                   area_after > min_area), clipped
 
     def augment_box(box):
         return augmenter.augment_keypoints(
