@@ -314,6 +314,13 @@ def get_detector_image_generator(labels,
             random.shuffle(labels)
         image_filepath, lines, confidence = labels[index]
         image = tools.read(image_filepath)
+        if augmenter is not None:
+            image, lines = tools.augment(boxes=lines,
+                                         boxes_format='lines',
+                                         image=image,
+                                         area_threshold=area_threshold,
+                                         min_area=min_area,
+                                         augmenter=augmenter)
         if focused:
             boxes = [tools.combine_line(line)[0] for line in lines]
             selected = np.array(boxes[np.random.choice(len(boxes))])
@@ -334,12 +341,6 @@ def get_detector_image_generator(labels,
                                          image=image,
                                          min_area=min_area,
                                          area_threshold=area_threshold)
-        if augmenter is not None:
-            image, lines = tools.augment(boxes=lines,
-                                         boxes_format='lines',
-                                         image=image,
-                                         area_threshold=area_threshold,
-                                         augmenter=augmenter)
         image, scale = tools.fit(image,
                                  width=width,
                                  height=height,
