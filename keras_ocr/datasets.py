@@ -323,24 +323,25 @@ def get_detector_image_generator(labels,
                                          augmenter=augmenter)
         if focused:
             boxes = [tools.combine_line(line)[0] for line in lines]
-            selected = np.array(boxes[np.random.choice(len(boxes))])
-            left, top = selected.min(axis=0).clip(0, np.inf).astype('int')
-            if left > 0:
-                left -= np.random.randint(0, min(left, width / 2))
-            if top > 0:
-                top -= np.random.randint(0, min(top, height / 2))
-            image, lines = tools.augment(boxes=lines,
-                                         augmenter=imgaug.augmenters.Sequential([
-                                             imgaug.augmenters.Crop(px=(int(top), 0, 0, int(left))),
-                                             imgaug.augmenters.CropToFixedSize(
-                                                 width=width,
-                                                 height=height,
-                                                 position='right-bottom')
-                                         ]),
-                                         boxes_format='lines',
-                                         image=image,
-                                         min_area=min_area,
-                                         area_threshold=area_threshold)
+            if boxes:
+                selected = np.array(boxes[np.random.choice(len(boxes))])
+                left, top = selected.min(axis=0).clip(0, np.inf).astype('int')
+                if left > 0:
+                    left -= np.random.randint(0, min(left, width / 2))
+                if top > 0:
+                    top -= np.random.randint(0, min(top, height / 2))
+                image, lines = tools.augment(
+                    boxes=lines,
+                    augmenter=imgaug.augmenters.Sequential([
+                        imgaug.augmenters.Crop(px=(int(top), 0, 0, int(left))),
+                        imgaug.augmenters.CropToFixedSize(width=width,
+                                                          height=height,
+                                                          position='right-bottom')
+                    ]),
+                    boxes_format='lines',
+                    image=image,
+                    min_area=min_area,
+                    area_threshold=area_threshold)
         image, scale = tools.fit(image,
                                  width=width,
                                  height=height,
