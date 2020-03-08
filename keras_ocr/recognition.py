@@ -201,8 +201,9 @@ def build_model(alphabet,
     assert len(filters) == 7, '7 CNN filters must be provided.'
     assert len(rnn_units) == 2, '2 RNN filters must be provided.'
     inputs = keras.layers.Input((height, width, 3 if color else 1), dtype='float32')
-    x = keras.layers.Permute((2, 1, 3))(inputs)
+    x = keras.layers.Permute((2, 1, 3), dtype='float32')(inputs)
     x = keras.layers.Lambda(lambda x: x[:, :, ::-1])(x)
+    x = tf.keras.backend.cast(x, dtype='float32')
     x = keras.layers.Conv2D(filters[0], (3, 3), activation='relu', padding='same', name='conv_1')(x)
     x = keras.layers.Conv2D(filters[1], (3, 3), activation='relu', padding='same', name='conv_2')(x)
     x = keras.layers.Conv2D(filters[2], (3, 3), activation='relu', padding='same', name='conv_3')(x)
