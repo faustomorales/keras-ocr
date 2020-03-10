@@ -329,9 +329,8 @@ class Recognizer:
         self.backbone, self.model, self.training_model, self.prediction_model = build_model(
             alphabet=alphabet, **build_params)
         if pretrained_weights is not None:
-            self.model.load_weights(pretrained_weights)
             self.prediction_model.load_weights(pretrained_weights)
-        elif weights is not None:
+        elif weights is not None and pretrained_model is None:
             weights_dict = PRETRAINED_WEIGHTS[weights]
             if alphabet == weights_dict['alphabet']:
                 self.model.load_weights(
