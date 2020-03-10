@@ -9,6 +9,10 @@ import cv2
 
 from . import tools
 
+# from tensorflow.keras.mixed_precision import experimental as mixed_precision
+# policy = mixed_precision.Policy('mixed_float16')
+# mixed_precision.set_policy(policy)
+
 DEFAULT_BUILD_PARAMS = {
     'height': 31,
     'width': 200,
@@ -307,10 +311,11 @@ class Recognizer:
         build_params: A dictionary of build parameters for the model.
             See `keras_ocr.detection.build_model` for details.
         weights: The starting weight configuration for the model.
+        pretrained_weight: HDF5 file with keys ['model_weights', 'optimizer_weights']
         include_top: Whether to include the final classification layer in the model (set
             to False to use a custom alphabet).
     """
-    def __init__(self, alphabet=None, weights='kurapan', build_params=None):
+    def __init__(self, alphabet=None, weights='kurapan', pretrained_weights=None, build_params=None):
         assert alphabet or weights, 'At least one of alphabet or weights must be provided.'
         if weights is not None:
             build_params = PRETRAINED_WEIGHTS[weights]['build_params']
@@ -323,7 +328,10 @@ class Recognizer:
         self.blank_label_idx = len(alphabet)
         self.backbone, self.model, self.training_model, self.prediction_model = build_model(
             alphabet=alphabet, **build_params)
-        if weights is not None:
+        if pretrained_weights is not None:
+            self.model.load_weights(pretrained_weights)
+            self.prediction_model.load_weights(pretrained_weights)
+        elif weights is not None:
             weights_dict = PRETRAINED_WEIGHTS[weights]
             if alphabet == weights_dict['alphabet']:
                 self.model.load_weights(
@@ -449,3 +457,4 @@ class Recognizer:
         if 'loss' not in kwargs:
             kwargs['loss'] = lambda _, y_pred: y_pred
         self.training_model.compile(*args, **kwargs)
+
