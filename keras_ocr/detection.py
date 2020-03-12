@@ -594,19 +594,18 @@ class Detector:
                  backbone_name='vgg',
                  pretrained_model=None):
         if weights is not None:
-            if pretrained_model is not None:
-                self.model.load_weights(pretrained_model)
-            else:
-                pretrained_key = (weights, load_from_torch)
-                assert backbone_name == 'vgg', 'Pretrained weights available only for VGG.'
-                assert pretrained_key in PRETRAINED_WEIGHTS, \
-                    'Selected weights configuration not found.'
-                weights_config = PRETRAINED_WEIGHTS[pretrained_key]
-                weights_path = tools.download_and_verify(url=weights_config['url'],
+            pretrained_key = (weights, load_from_torch)
+            assert backbone_name == 'vgg', 'Pretrained weights available only for VGG.'
+            assert pretrained_key in PRETRAINED_WEIGHTS, \
+                'Selected weights configuration not found.'
+            weights_config = PRETRAINED_WEIGHTS[pretrained_key]
+            weights_path = tools.download_and_verify(url=weights_config['url'],
                                                      filename=weights_config['filename'],
                                                      sha256=weights_config['sha256'])
         else:
             weights_path = None
+        if pretrained_model is not None:
+            weights_path = pretrained_model
 
         self.model = build_keras_model(weights_path=weights_path, backbone_name=backbone_name)
         if pretrained_model is not None:
