@@ -328,12 +328,13 @@ class Recognizer:
         self.blank_label_idx = len(alphabet)
         self.backbone, self.model, self.training_model, self.prediction_model = build_model(
             alphabet=alphabet, **build_params)
-        if pretrained_weights is not None:
-            self.model.load_weights(pretrained_weights)
-            self.prediction_model.load_weights(pretrained_weights)
-        elif weights is not None:
+        
+        if weights is not None:
             weights_dict = PRETRAINED_WEIGHTS[weights]
-            if alphabet == weights_dict['alphabet']:
+            if pretrained_weights is not None:
+                self.model.load_weights(pretrained_weights)
+
+            elif alphabet == weights_dict['alphabet']:
                 self.model.load_weights(
                     tools.download_and_verify(url=weights_dict['weights']['top']['url'],
                                               filename=weights_dict['weights']['top']['filename'],
@@ -345,6 +346,7 @@ class Recognizer:
                     tools.download_and_verify(url=weights_dict['weights']['notop']['url'],
                                               filename=weights_dict['weights']['notop']['filename'],
                                               sha256=weights_dict['weights']['notop']['sha256']))
+
 
     def get_batch_generator(self, image_generator, batch_size=8, lowercase=False):
         """
