@@ -311,7 +311,7 @@ class Recognizer:
         build_params: A dictionary of build parameters for the model.
             See `keras_ocr.detection.build_model` for details.
         weights: The starting weight configuration for the model.
-        pretrained_weight: HDF5 file with keys ['model_weights', 'optimizer_weights']
+        pretrained_weight: weights form a trained model  HDF5 file with keys ['model_weights', 'optimizer_weights']
         include_top: Whether to include the final classification layer in the model (set
             to False to use a custom alphabet).
     """

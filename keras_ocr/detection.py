@@ -586,13 +586,14 @@ class Detector:
         load_from_torch: Whether to load the weights from the original PyTorch weights.
         optimizer: The optimizer to use for training the model.
         backbone_name: The backbone to use. Currently, only 'vgg' is supported.
+        pretrained_weights: weights from a trained model
     """
     def __init__(self,
                  weights='clovaai_general',
                  load_from_torch=False,
                  optimizer='adam',
                  backbone_name='vgg',
-                 pretrained_model=None):
+                 pretrained_weights=None):
         if weights is not None:
             pretrained_key = (weights, load_from_torch)
             assert backbone_name == 'vgg', 'Pretrained weights available only for VGG.'
@@ -605,7 +606,7 @@ class Detector:
         else:
             weights_path = None
         if pretrained_model is not None:
-            weights_path = pretrained_model
+            weights_path = pretrained_weights
 
         self.model = build_keras_model(weights_path=weights_path, backbone_name=backbone_name)
         self.model.compile(loss='mse', optimizer=optimizer)
