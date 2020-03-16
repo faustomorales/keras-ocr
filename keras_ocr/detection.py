@@ -347,9 +347,9 @@ def build_keras_model(weights_path: str = None, backbone_name='vgg'):
                             name='conv_cls.6')(y)
     y = keras.layers.Activation('relu', name='conv_cls.7')(y)
     y = keras.layers.Conv2D(filters=2, kernel_size=1, strides=1, padding='same',
-                            name='conv_cls.8', dtype='float32')(y)
+                            name='conv_cls.8')(y)
     if backbone_name != 'vgg':
-        y = keras.layers.Activation('sigmoid', dtype='float32')(y)
+        y = keras.layers.Activation('sigmoid')(y)
     model = keras.models.Model(inputs=inputs, outputs=y)
     if weights_path is not None:
         if weights_path.endswith('.h5'):
