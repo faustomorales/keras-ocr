@@ -605,7 +605,7 @@ class Detector:
                                                      sha256=weights_config['sha256'])
         else:
             weights_path = None
-        if pretrained_model is not None:
+        if pretrained_weights is not None:
             weights_path = pretrained_weights
 
         self.model = build_keras_model(weights_path=weights_path, backbone_name=backbone_name)
