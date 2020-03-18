@@ -609,8 +609,8 @@ class Detector:
             weights_path = pretrained_weights
 
         self.model = build_keras_model(weights_path=weights_path, backbone_name=backbone_name)
-        if pretrained_model is not None:
-            self.model.load_weights(pretrained_model)
+        if pretrained_weights is not None:
+            self.model.load_weights(pretrained_weights)
 
         self.model.compile(loss='mse', optimizer=optimizer)
 
