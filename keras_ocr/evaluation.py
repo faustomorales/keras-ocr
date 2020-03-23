@@ -15,7 +15,7 @@ def iou_score(box1, box2):
     the two bounding boxes. This measure is symmetric.
 
     Args:
-        box1: The coordinates for box 1 as a list of points
+        box1: The coordinates for box 1 as a list of (x, y) coordinates
         box2: The coordinates for box 2 in same format as box1.
     """
     if len(box1) == 2:
@@ -26,7 +26,7 @@ def iou_score(box1, box2):
         x1, y1 = box2[0]
         x2, y2 = box2[1]
         box2 = np.array([[x1, y1], [x2, y1], [x2, y2], [x1, y2]])
-    if any(cv2.contourArea(np.int32(box2)[:, np.newaxis, :]) == 0 for box in [box1, box2]):
+    if any(cv2.contourArea(np.int32(box)[:, np.newaxis, :]) == 0 for box in [box1, box2]):
         warnings.warn('A box with zero area was detected.')
         return 0
     pc = pyclipper.Pyclipper()
@@ -45,7 +45,7 @@ def score(true, pred, iou_threshold=0.5, similarity_threshold=0.5, translator=No
     """
     Args:
         true: The ground truth boxes provided as a dictionary of {image_id: annotations}
-            mappings. `annotations` should be lists of dicts with a `text` and `vertices` keys.
+            mappings. `annotations` should be lists of dicts with a `text` and `vertices` key.
             `vertices` should be a list of (x, y) coordinates. Optionally, an "ignore" key can be
             added to indicate that detecting an annotation should neither count as a false positive
             nor should failure to detect it count as a false negative.
