@@ -303,7 +303,7 @@ class Recognizer:
     Args:
         alphabet: The alphabet the model should recognize.
         build_params: A dictionary of build parameters for the model.
-            See `keras_ocr.detection.build_model` for details.
+            See `keras_ocr.recognition.build_model` for details.
         weights: The starting weight configuration for the model.
         include_top: Whether to include the final classification layer in the model (set
             to False to use a custom alphabet).
