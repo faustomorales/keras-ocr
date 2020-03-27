@@ -36,6 +36,22 @@ def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
+def get_rotated_width_height(box):
+    """
+    Returns the width and height of a rotated rectangle
+
+    Args:
+        box: A list of four points starting in the top left
+        corner and moving clockwise.
+    """
+    w = (spatial.distance.cdist(box[0][np.newaxis], box[1][np.newaxis], "euclidean") + spatial.distance.cdist(
+        box[2][np.newaxis], box[3][np.newaxis], "euclidean")) / 2
+    h = (spatial.distance.cdist(box[0][np.newaxis], box[3][np.newaxis], "euclidean") + spatial.distance.cdist(
+        box[1][np.newaxis], box[2][np.newaxis], "euclidean")) / 2
+
+    return w, h
+
+
 def warpBox(image,
             box,
             target_height=None,
@@ -59,7 +75,7 @@ def warpBox(image,
     if cval is None:
         cval = (0, 0, 0) if len(image.shape) == 3 else 0
     box, _ = get_rotated_box(box)
-    _, _, w, h = cv2.boundingRect(box)
+    w, h = get_rotated_width_height(box)
     assert (
         (target_width is None and target_height is None)
         or (target_width is not None and target_height is not None)), \
