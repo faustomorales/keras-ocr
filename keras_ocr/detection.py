@@ -656,6 +656,23 @@ class Detector:
         Args:
             images: Can be a list of numpy arrays of shape HxWx3 or a list of
                 filepaths.
+            link_threshold: This is the same as `text_threshold`, but is applied to the
+                link map instead of the text map.
+            detection_threshold: We want to avoid including boxes that may have
+                represented large regions of low confidence text predictions. To do this,
+                we do a final check for each word box to make sure the maximum confidence
+                value exceeds some detection threshold. This is the threshold used for
+                this check.
+            text_threshold: When the text map is processed, it is converted from confidence
+                (float from zero to one) values to classification (0 for not text, 1 for
+                text) using binary thresholding. The threshold value determines the
+                breakpoint at which a value is converted to a 1 or a 0. For example, if
+                the threshold is 0.4 and a value for particular point on the text map is
+                0.5, that value gets converted to a 1. The higher this value is, the less
+                likely it is that characters will be merged together into a single word.
+                The lower this value is, the more likely it is that non-text will be detected.
+                Therein lies the balance.
+            size_threshold: The minimum area for a word.
         """
         images = [compute_input(tools.read(image)) for image in images]
         boxes = []
