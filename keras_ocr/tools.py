@@ -44,10 +44,10 @@ def get_rotated_width_height(box):
         box: A list of four points starting in the top left
         corner and moving clockwise.
     """
-    w = (spatial.distance.cdist(box[0][np.newaxis], box[1][np.newaxis], "euclidean") + spatial.distance.cdist(
-        box[2][np.newaxis], box[3][np.newaxis], "euclidean")) / 2
-    h = (spatial.distance.cdist(box[0][np.newaxis], box[3][np.newaxis], "euclidean") + spatial.distance.cdist(
-        box[1][np.newaxis], box[2][np.newaxis], "euclidean")) / 2
+    w = (spatial.distance.cdist(box[0][np.newaxis], box[1][np.newaxis], "euclidean") +
+         spatial.distance.cdist(box[2][np.newaxis], box[3][np.newaxis], "euclidean")) / 2
+    h = (spatial.distance.cdist(box[0][np.newaxis], box[3][np.newaxis], "euclidean") +
+         spatial.distance.cdist(box[1][np.newaxis], box[2][np.newaxis], "euclidean")) / 2
 
     return w, h
 
