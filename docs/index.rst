@@ -17,6 +17,11 @@ Installation
     # To install from PyPi
     pip install keras-ocr
 
+Troubleshooting
+***************
+
+- *This package is installing* :code:`opencv-python-headless` *but I would prefer a different* :code:`opencv` *flavor.* This is due to `aleju/imgaug#473 <https://github.com/aleju/imgaug/issues/473>`_. You can uninstall the unwanted OpenCV flavor after installing :code:`keras-ocr`. We apologize for the inconvenience.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
