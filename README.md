@@ -95,4 +95,4 @@ To implement new features, please first file an issue proposing your change for 
 To report problems, please file an issue with sample code, expected results, actual results, and a complete traceback.
 
 ## Troubleshooting
-- *This package is installing `opencv-python-headless` but I would prefer a different `opencv` flavor.** This is due to [aleju/imgaug#473](https://github.com/aleju/imgaug/issues/473). You can uninstall the unwanted OpenCV flavor after installing `keras-ocr`. We apologize for the inconvenience.
+- *This package is installing `opencv-python-headless` but I would prefer a different `opencv` flavor.* This is due to [aleju/imgaug#473](https://github.com/aleju/imgaug/issues/473). You can uninstall the unwanted OpenCV flavor after installing `keras-ocr`. We apologize for the inconvenience.
