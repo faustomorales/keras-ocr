@@ -311,10 +311,9 @@ class Recognizer:
     def __init__(self, alphabet=None, weights='kurapan', build_params=None):
         assert alphabet or weights, 'At least one of alphabet or weights must be provided.'
         if weights is not None:
-            build_params = PRETRAINED_WEIGHTS[weights]['build_params']
+            build_params = build_params or PRETRAINED_WEIGHTS[weights]['build_params']
             alphabet = alphabet or PRETRAINED_WEIGHTS[weights]['alphabet']
-        else:
-            build_params = DEFAULT_BUILD_PARAMS
+        build_params = build_params or DEFAULT_BUILD_PARAMS
         if alphabet is None:
             alphabet = DEFAULT_ALPHABET
         self.alphabet = alphabet
