@@ -60,7 +60,7 @@ We can visualize what the samples look like pretty easily.
 
 .. code-block:: python
 
-    image, lines = next(training_image_generator)
+    image, lines, confidence = next(training_image_generator)
     canvas = keras_ocr.tools.drawBoxes(image=image, boxes=lines, boxes_format='lines')
     plt.imshow(canvas)
 
