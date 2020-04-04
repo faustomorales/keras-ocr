@@ -269,8 +269,7 @@ def get_icdar_2019_semisupervised_dataset(cache_dir=None):
     ground_truth = tools.download_and_verify(
         url='http://www.mediafire.com/file/jshjv9kntxjzhva/mlt2019_dataset.json/file',  # pylint: disable=line-too-long
         cache_dir=main_dir,
-        filename='mlt2019_dataset.json',
-        sha256='179452117a6a4afe519fa2f90ee7c2cddeb18e35c1df3036ae231cd280057684')
+        filename='mlt2019_dataset.json')
     with open(ground_truth, 'r') as f:
         character_level_dataset = json.loads(f.read())['dataset']
     for gif_filepath in glob.glob(os.path.join(main_dir, '**', '*.gif')):
