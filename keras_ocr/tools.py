@@ -48,8 +48,7 @@ def get_rotated_width_height(box):
          spatial.distance.cdist(box[2][np.newaxis], box[3][np.newaxis], "euclidean")) / 2
     h = (spatial.distance.cdist(box[0][np.newaxis], box[3][np.newaxis], "euclidean") +
          spatial.distance.cdist(box[1][np.newaxis], box[2][np.newaxis], "euclidean")) / 2
-
-    return w, h
+    return int(w[0][0]), int(h[0][0])
 
 
 def warpBox(image,
