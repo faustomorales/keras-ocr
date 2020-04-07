@@ -58,7 +58,7 @@ def warpBox(image,
             margin=0,
             cval=None,
             return_transform=False,
-            skip_rorate=False):
+            skip_rotate=False):
     """Warp a boxed region in an image given by a set of four points into
     a rectangle with a specified width and height. Useful for taking crops
     of distorted or rotated text.
@@ -74,7 +74,7 @@ def warpBox(image,
     """
     if cval is None:
         cval = (0, 0, 0) if len(image.shape) == 3 else 0
-    if not skip_rorate:
+    if not skip_rotate:
         box, _ = get_rotated_box(box)
     w, h = get_rotated_width_height(box)
     assert (
