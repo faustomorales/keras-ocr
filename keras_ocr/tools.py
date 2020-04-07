@@ -57,7 +57,8 @@ def warpBox(image,
             target_width=None,
             margin=0,
             cval=None,
-            return_transform=False):
+            return_transform=False,
+            skip_rorate=False):
     """Warp a boxed region in an image given by a set of four points into
     a rectangle with a specified width and height. Useful for taking crops
     of distorted or rotated text.
@@ -73,7 +74,8 @@ def warpBox(image,
     """
     if cval is None:
         cval = (0, 0, 0) if len(image.shape) == 3 else 0
-    box, _ = get_rotated_box(box)
+    if not skip_rorate:
+        box, _ = get_rotated_box(box)
     w, h = get_rotated_width_height(box)
     assert (
         (target_width is None and target_height is None)
@@ -115,11 +117,12 @@ def combine_line(line):
     box = np.concatenate([coords[:2] for coords, _ in line] +
                          [np.array([coords[3], coords[2]])
                           for coords, _ in reversed(line)]).astype('float32')
+    first_point = box[0]
     rectangle = cv2.minAreaRect(box)
     box = cv2.boxPoints(rectangle)
 
     # Put the points in clockwise order
-    box = np.array(np.roll(box, 4 - box.sum(axis=1).argmin(), 0))
+    box = np.array(np.roll(box, -np.linalg.norm(box - first_point, axis=1).argmin(), 0))
     return box, text
 
 

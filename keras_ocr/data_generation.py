@@ -263,7 +263,8 @@ def convert_image_generator_to_recognizer_input(image_generator,
                                  box=box,
                                  target_width=target_width,
                                  target_height=target_height,
-                                 margin=margin)
+                                 margin=margin,
+                                 skip_rotate=True)
             yield crop, sentence
 
 
