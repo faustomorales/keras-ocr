@@ -51,6 +51,7 @@ def get_rotated_width_height(box):
     return int(w[0][0]), int(h[0][0])
 
 
+# pylint:disable=too-many-locals
 def warpBox(image,
             box,
             target_height=None,
