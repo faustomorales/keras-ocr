@@ -111,8 +111,7 @@ Here we build our detector and recognizer models. For both, we'll start with pre
     detector = keras_ocr.detection.Detector(weights='clovaai_general')
     recognizer = keras_ocr.recognition.Recognizer(
         alphabet=recognizer_alphabet,
-        weights='kurapan',
-        include_top=False
+        weights='kurapan'
     )
     recognizer.compile()
     for layer in recognizer.backbone.layers:
