@@ -675,12 +675,9 @@ class Detector:
             size_threshold: The minimum area for a word.
         """
         images = [compute_input(tools.read(image)) for image in images]
-        boxes = []
-        for image in images:
-            boxes.append(
-                getBoxes(self.model.predict(image[np.newaxis], **kwargs),
+        boxes = getBoxes(self.model.predict(np.array(images), **kwargs),
                          detection_threshold=detection_threshold,
                          text_threshold=text_threshold,
                          link_threshold=link_threshold,
-                         size_threshold=size_threshold)[0])
+                         size_threshold=size_threshold)
         return boxes
