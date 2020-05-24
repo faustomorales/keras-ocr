@@ -259,6 +259,11 @@ def convert_image_generator_to_recognizer_input(image_generator,
             if not line:
                 continue
             box, sentence = tools.combine_line(line)
+            
+            # remove multiple sequential spaces
+            while ("  " in sentence):
+                sentence = sentence.replace("  ", " ")
+
             crop = tools.warpBox(image=image,
                                  box=box,
                                  target_width=target_width,
