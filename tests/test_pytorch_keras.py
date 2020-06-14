@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 import pytest
-import torch
 
 import keras_ocr
 
@@ -13,9 +12,10 @@ keras_weights_available = os.path.isfile(
     os.path.expanduser(os.path.join('~', '.keras-ocr', 'craft_mlt_25k.h5')))
 
 
-@pytest.mark.skipif(not keras_weights_available and torch_weights_available,
+@pytest.mark.skipif(not (keras_weights_available and torch_weights_available),
                     reason="CRAFT weights required.")
 def test_pytorch_identical_output():
+    import torch  # pylint: disable=import-outside-toplevel
     weights_path_torch = keras_ocr.tools.download_and_verify(
         url='https://www.mediafire.com/file/qh2ullnnywi320s/craft_mlt_25k.pth/file',
         filename='craft_mlt_25k.pth',

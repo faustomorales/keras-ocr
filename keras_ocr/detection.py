@@ -362,6 +362,7 @@ def build_keras_model(weights_path: str = None, backbone_name='vgg'):
     return model
 
 
+# pylint: disable=import-error
 def load_torch_weights(model, weights_path):
     import torch
 
@@ -400,6 +401,7 @@ def load_torch_weights(model, weights_path):
             assert layer.name in layer_names
 
 
+# pylint: disable=import-error,too-few-public-methods
 def build_torch_model(weights_path=None):
     from collections import namedtuple, OrderedDict
 
