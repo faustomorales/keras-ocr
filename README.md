@@ -61,10 +61,10 @@ You may be wondering how the models in this package compare to existing cloud OC
 
 | model                 | latency | precision | recall |
 |-----------------------|---------|-----------|--------|
-| [AWS](https://www.mediafire.com/file/7obsgyzg7z1ltb0/aws_annotations.json/file)                   | 719ms   | 0.45      | 0.48   |
-| [GCP](https://www.mediafire.com/file/8is5pq161ui95ox/google_annotations.json/file)                   | 388ms   | 0.53      | 0.58   |
-| [keras-ocr](https://www.mediafire.com/file/1gcwtrzy537v0sn/keras_ocr_annotations_scale_2.json/file) (scale=2)  | 417ms   | 0.53      | 0.54   |
-| [keras-ocr](https://www.mediafire.com/file/dc7e66oupelsp7p/keras_ocr_annotations_scale_3.json/file) (scale=3)  | 699ms   | 0.5       | 0.59   |
+| [AWS](https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/aws_annotations.json)                   | 719ms   | 0.45      | 0.48   |
+| [GCP](https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/google_annotations.json)                   | 388ms   | 0.53      | 0.58   |
+| [keras-ocr](https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/keras_ocr_annotations_scale_2.json) (scale=2)  | 417ms   | 0.53      | 0.54   |
+| [keras-ocr](https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/keras_ocr_annotations_scale_3.json) (scale=3)  | 699ms   | 0.5       | 0.59   |
 
 - Precision and recall were computed based on an intersection over union of 50% or higher and a text similarity to ground truth of 50% or higher.
 - `keras-ocr` latency values were computed using a Tesla P4 GPU on Google Colab. `scale` refers to the argument provided to `keras_ocr.pipelines.Pipeline()` which determines the upscaling applied to the image prior to inference.

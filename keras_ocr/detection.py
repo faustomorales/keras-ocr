@@ -1,4 +1,4 @@
-# pylint: disable=invalid-name,too-many-locals,no-else-raise,too-many-arguments,no-self-use,too-many-statements,stop-iteration-return,import-outside-toplevel
+# pylint: disable=invalid-name,too-many-locals,line-too-long,no-else-raise,too-many-arguments,no-self-use,too-many-statements,stop-iteration-return,import-outside-toplevel
 import typing
 
 # The PyTorch portions of this code are subject to the following copyright notice.
@@ -426,7 +426,7 @@ def build_torch_model(weights_path=None):
 
     class vgg16_bn(torch.nn.Module):
         def __init__(self, pretrained=True, freeze=True):
-            super(vgg16_bn, self).__init__()
+            super().__init__()
             # We don't bother loading the pretrained VGG
             # because we're going to use the weights
             # at weights_path.
@@ -481,7 +481,7 @@ def build_torch_model(weights_path=None):
 
     class double_conv(nn.Module):
         def __init__(self, in_ch, mid_ch, out_ch):
-            super(double_conv, self).__init__()
+            super().__init__()
             self.conv = nn.Sequential(nn.Conv2d(in_ch + mid_ch, mid_ch, kernel_size=1),
                                       nn.BatchNorm2d(mid_ch), nn.ReLU(inplace=True),
                                       nn.Conv2d(mid_ch, out_ch, kernel_size=3, padding=1),
@@ -493,7 +493,7 @@ def build_torch_model(weights_path=None):
 
     class CRAFT(nn.Module):
         def __init__(self, pretrained=False, freeze=False):
-            super(CRAFT, self).__init__()
+            super().__init__()
             # Base network
             self.basenet = vgg16_bn(pretrained, freeze)
             # U network
@@ -567,12 +567,14 @@ def build_torch_model(weights_path=None):
 
 PRETRAINED_WEIGHTS = {
     ('clovaai_general', True): {
-        'url': 'https://www.mediafire.com/file/qh2ullnnywi320s/craft_mlt_25k.pth/file',
+        'url':
+        'https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/craft_mlt_25k.pth',
         'filename': 'craft_mlt_25k.pth',
         'sha256': '4a5efbfb48b4081100544e75e1e2b57f8de3d84f213004b14b85fd4b3748db17'
     },
     ('clovaai_general', False): {
-        'url': 'https://www.mediafire.com/file/mepzf3sq7u7nve9/craft_mlt_25k.h5/file',
+        'url':
+        'https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/craft_mlt_25k.h5',
         'filename': 'craft_mlt_25k.h5',
         'sha256': '7283ce2ff05a0617e9740c316175ff3bacdd7215dbdf1a726890d5099431f899'
     }

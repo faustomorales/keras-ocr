@@ -1,4 +1,4 @@
-# pylint: disable=invalid-name,too-many-locals,too-many-arguments,too-many-branches,too-many-statements,stop-iteration-return
+# pylint: disable=invalid-name,line-too-long,too-many-locals,too-many-arguments,too-many-branches,too-many-statements,stop-iteration-return
 import os
 import math
 import glob
@@ -168,7 +168,7 @@ def get_backgrounds(cache_dir=None):
         cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
     backgrounds_dir = os.path.join(cache_dir, 'backgrounds')
     backgrounds_zip_path = tools.download_and_verify(
-        url='https://www.mediafire.com/file/l0pdx5j860kqmyr/backgrounds.zip/file',
+        url='https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/backgrounds.zip',
         sha256='f263ed0d55de303185cc0f93e9fcb0b13104d68ed71af7aaaa8e8c91389db471',
         filename='backgrounds.zip',
         cache_dir=cache_dir)
@@ -199,7 +199,7 @@ def get_fonts(cache_dir=None,
     if cache_dir is None:
         cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
     fonts_zip_path = tools.download_and_verify(
-        url='https://www.mediafire.com/file/6v9r9oztyri0jrc/fonts.zip/file',
+        url='https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/fonts.zip',
         sha256='d4d90c27a9bc4bf8fff1d2c0a00cfb174c7d5d10f60ed29d5f149ef04d45b700',
         filename='fonts.zip',
         cache_dir=cache_dir)
@@ -212,7 +212,8 @@ def get_fonts(cache_dir=None,
     if exclude_smallcaps:
         with open(
                 tools.download_and_verify(
-                    url='https://www.mediafire.com/file/v2o7hxn0mapne7i/fonts_smallcaps.txt/file',
+                    url=
+                    'https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/fonts_smallcaps.txt',
                     sha256='6531c700523c687f02852087530d1ab3c7cc0b59891bbecc77726fbb0aabe68e',
                     filename='fonts_smallcaps.txt',
                     cache_dir=cache_dir), 'r') as f:
@@ -312,7 +313,6 @@ def draw_text_image(text,
         box is an array of points with shape (4, 2) providing the coordinates
         of the character box in clockwise order starting from the top left.
     """
-    # pylint: disable=bad-continuation
     if not use_ligatures:
         fonts = {
             subalphabet: PIL.ImageFont.truetype(font_path, size=fontsize)

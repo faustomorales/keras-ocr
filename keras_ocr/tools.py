@@ -455,7 +455,6 @@ def download_and_verify(url, sha256=None, cache_dir=None, verbose=True, filename
     return filepath
 
 
-# pylint: disable=bad-continuation
 def get_rotated_box(
     points
 ) -> typing.Tuple[typing.Tuple[float, float], typing.Tuple[float, float], typing.Tuple[
