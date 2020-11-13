@@ -1,4 +1,5 @@
-# pylint: disable=invalid-name,too-many-locals,too-many-arguments,line-too-long
+# pylint: disable=invalid-name,too-many-locals,too-many-arguments,line-too-long,no-value-for-parameter,unexpected-keyword-arg
+# We ignore no-value-for-parameter and unexpected-keyword-arg because of https://github.com/PyCQA/pylint/issues/3613
 import typing
 import string
 
