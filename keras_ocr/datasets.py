@@ -301,7 +301,8 @@ def get_detector_image_generator(labels,
                                  augmenter=None,
                                  area_threshold=0.5,
                                  focused=False,
-                                 min_area=None):
+                                 min_area=None,
+                                 shuffle=True):
     """Generated augmented (image, lines) tuples from a list
     of (filepath, lines, confidence) tuples. Confidence is
     not used right now but is included for a future release
@@ -321,7 +322,7 @@ def get_detector_image_generator(labels,
     """
     labels = labels.copy()
     for index in itertools.cycle(range(len(labels))):
-        if index == 0:
+        if index == 0 and shuffle:
             random.shuffle(labels)
         image_filepath, lines, confidence = labels[index]
         image = tools.read(image_filepath)
@@ -362,7 +363,7 @@ def get_detector_image_generator(labels,
         yield image, lines, confidence
 
 
-def get_recognizer_image_generator(labels, height, width, alphabet, augmenter=None):
+def get_recognizer_image_generator(labels, height, width, alphabet, augmenter=None, shuffle=True):
     """Generate augmented (image, text) tuples from a list
     of (filepath, box, label) tuples.
 
@@ -378,7 +379,7 @@ def get_recognizer_image_generator(labels, height, width, alphabet, augmenter=No
         print(f'{n_with_illegal_characters} / {len(labels)} instances have illegal characters.')
     labels = labels.copy()
     for index in itertools.cycle(range(len(labels))):
-        if index == 0:
+        if index == 0 and shuffle:
             random.shuffle(labels)
         filepath, box, text = labels[index]
         cval = cval = np.random.randint(low=0, high=255, size=3).astype('uint8')
