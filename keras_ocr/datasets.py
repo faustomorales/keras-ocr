@@ -319,6 +319,7 @@ def get_detector_image_generator(labels,
             included.
         focused: Whether to pre-crop images to width/height containing
             a region containing text.
+        shuffle: Whether to shuffle the data on each iteration.
     """
     labels = labels.copy()
     for index in itertools.cycle(range(len(labels))):
@@ -373,6 +374,7 @@ def get_recognizer_image_generator(labels, height, width, alphabet, augmenter=No
         width: The width of the images to return
         alphabet: The alphabet which limits the characters returned
         augmenter: The augmenter to apply to images
+        shuffle: Whether to shuffle the dataset on each iteration
     """
     n_with_illegal_characters = sum(any(c not in alphabet for c in text) for _, _, text in labels)
     if n_with_illegal_characters > 0:
