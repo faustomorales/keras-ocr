@@ -38,7 +38,7 @@ An interactive version of this example on Google Colab is provided `here
         cache_dir='.'
     )
     train_labels = [(filepath, box, word.lower()) for filepath, box, word in train_labels]
-    test_labels = [(filepath, box, word.lower()) for filepath, box, word in train_labels]
+    test_labels = [(filepath, box, word.lower()) for filepath, box, word in test_labels]
 
 We next build our recognizer, using the default options to get a pretrained model.
 
