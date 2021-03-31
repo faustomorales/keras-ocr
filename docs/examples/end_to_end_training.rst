@@ -143,8 +143,8 @@ T4 or P100, you can use larger batch sizes.
             batch_size=detector_batch_size
         ) for image_generator in image_generators
     ]
-    detector.model.fit_generator(
-        generator=detection_train_generator,
+    detector.model.fit(
+        detection_train_generator,
         steps_per_epoch=math.ceil(len(background_splits[0]) / detector_batch_size),
         epochs=1000,
         workers=0,
@@ -154,7 +154,8 @@ T4 or P100, you can use larger batch sizes.
             tf.keras.callbacks.ModelCheckpoint(filepath=f'{detector_basepath}.h5')
         ],
         validation_data=detection_val_generator,
-        validation_steps=math.ceil(len(background_splits[1]) / detector_batch_size)
+        validation_steps=math.ceil(len(background_splits[1]) / detector_batch_size),
+        batch_size=detector_batch_size
     )
 
 Train the recognizer
@@ -201,8 +202,8 @@ We use the same callbacks for early stopping and logging as before.
         lowercase=True
         ) for image_generator in recognition_image_generators
     ]
-    recognizer.training_model.fit_generator(
-        generator=recognition_train_generator,
+    recognizer.training_model.fit(
+        recognition_train_generator,
         epochs=1000,
         steps_per_epoch=math.ceil(len(background_splits[0]) / recognition_batch_size),
         callbacks=[
@@ -212,7 +213,8 @@ We use the same callbacks for early stopping and logging as before.
         ],
         validation_data=recognition_val_generator,
         validation_steps=math.ceil(len(background_splits[1]) / recognition_batch_size),
-        workers=0
+        workers=0,
+        bacth_size=recognition_batch_size
     )
 
 Use the models for inference
