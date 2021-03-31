@@ -80,8 +80,8 @@ Now we can build the detector and train it.
         ) for image_generator in
         [training_image_generator, validation_image_generator]
     ]
-    detector.model.fit_generator(
-        generator=training_generator,
+    detector.model.fit(
+        training_generator,
         steps_per_epoch=math.ceil(len(train) / batch_size),
         epochs=1000,
         workers=0,
@@ -91,7 +91,8 @@ Now we can build the detector and train it.
             tf.keras.callbacks.ModelCheckpoint(filepath=os.path.join(data_dir, 'detector_icdar2013.h5'))
         ],
         validation_data=validation_generator,
-        validation_steps=math.ceil(len(validation) / batch_size)
+        validation_steps=math.ceil(len(validation) / batch_size),
+        batch_size=batch_size
     )
 
 Weights can be loaded into the model attribute of the detector. This is how you can reuse the weights later.
