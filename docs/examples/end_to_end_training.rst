@@ -194,7 +194,7 @@ We use the same callbacks for early stopping and logging as before.
 
     recognition_batch_size = 8
     recognizer_basepath = os.path.join(data_dir, f'recognizer_{datetime.datetime.now().isoformat()}')
-    recognition_train_generator, recognition_val_generator, recogntion_test_generator = [
+    recognition_train_generator, recognition_val_generator, recognition_test_generator = [
         recognizer.get_batch_generator(
         image_generator=image_generator,
         batch_size=recognition_batch_size,
