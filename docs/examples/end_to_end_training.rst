@@ -39,7 +39,7 @@ The backgrounds folder contains about just over 1,000 image backgrounds.
 
     import keras_ocr
 
-    assert tf.test.is_gpu_available(), 'No GPU is available.'
+    assert tf.config.list_physical_devices('GPU'), 'No GPU is available.'
 
     data_dir = '.'
     alphabet = string.digits + string.ascii_letters + '!?. '
