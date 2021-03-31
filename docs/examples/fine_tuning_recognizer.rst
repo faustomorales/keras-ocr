@@ -101,13 +101,14 @@ Now we can run training.
         tf.keras.callbacks.ModelCheckpoint('recognizer_borndigital.h5', monitor='val_loss', save_best_only=True),
         tf.keras.callbacks.CSVLogger('recognizer_borndigital.csv')
     ]
-    recognizer.training_model.fit_generator(
-        generator=training_gen,
+    recognizer.training_model.fit(
+        training_gen,
         steps_per_epoch=training_steps,
         validation_steps=validation_steps,
         validation_data=validation_gen,
         callbacks=callbacks,
         epochs=1000,
+        batch_size=batch_size
     )
 
 Finally, run inference on a test sample.
