@@ -27,7 +27,7 @@ An interactive version of this example on Google Colab is provided `here
 
     import keras_ocr
 
-    assert tf.test.is_gpu_available()
+    assert tf.config.list_physical_devices('GPU'), 'No GPU is available.'
 
     train_labels = keras_ocr.datasets.get_born_digital_recognizer_dataset(
         split='train',
