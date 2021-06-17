@@ -24,14 +24,15 @@ def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
     """
     if isinstance(filepath_or_buffer, np.ndarray):
         return filepath_or_buffer
-    if hasattr(filepath_or_buffer, 'read'):
-        image = np.asarray(bytearray(filepath_or_buffer.read()), dtype=np.uint8)
+    if hasattr(filepath_or_buffer, "read"):
+        image = np.asarray(bytearray(filepath_or_buffer.read()), dtype=np.uint8)  # type: ignore
         image = cv2.imdecode(image, cv2.IMREAD_UNCHANGED)
     elif isinstance(filepath_or_buffer, str):
         if validators.url(filepath_or_buffer):
             return read(urllib.request.urlopen(filepath_or_buffer))
-        assert os.path.isfile(filepath_or_buffer), \
-            'Could not find image at path: ' + filepath_or_buffer
+        assert os.path.isfile(filepath_or_buffer), (
+            "Could not find image at path: " + filepath_or_buffer
+        )
         image = cv2.imread(filepath_or_buffer)
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -44,22 +45,28 @@ def get_rotated_width_height(box):
         box: A list of four points starting in the top left
         corner and moving clockwise.
     """
-    w = (spatial.distance.cdist(box[0][np.newaxis], box[1][np.newaxis], "euclidean") +
-         spatial.distance.cdist(box[2][np.newaxis], box[3][np.newaxis], "euclidean")) / 2
-    h = (spatial.distance.cdist(box[0][np.newaxis], box[3][np.newaxis], "euclidean") +
-         spatial.distance.cdist(box[1][np.newaxis], box[2][np.newaxis], "euclidean")) / 2
+    w = (
+        spatial.distance.cdist(box[0][np.newaxis], box[1][np.newaxis], "euclidean")
+        + spatial.distance.cdist(box[2][np.newaxis], box[3][np.newaxis], "euclidean")
+    ) / 2
+    h = (
+        spatial.distance.cdist(box[0][np.newaxis], box[3][np.newaxis], "euclidean")
+        + spatial.distance.cdist(box[1][np.newaxis], box[2][np.newaxis], "euclidean")
+    ) / 2
     return int(w[0][0]), int(h[0][0])
 
 
 # pylint:disable=too-many-locals
-def warpBox(image,
-            box,
-            target_height=None,
-            target_width=None,
-            margin=0,
-            cval=None,
-            return_transform=False,
-            skip_rotate=False):
+def warpBox(
+    image,
+    box,
+    target_height=None,
+    target_width=None,
+    margin=0,
+    cval=None,
+    return_transform=False,
+    skip_rotate=False,
+):
     """Warp a boxed region in an image given by a set of four points into
     a rectangle with a specified width and height. Useful for taking crops
     of distorted or rotated text.
@@ -78,23 +85,32 @@ def warpBox(image,
     if not skip_rotate:
         box, _ = get_rotated_box(box)
     w, h = get_rotated_width_height(box)
-    assert (
-        (target_width is None and target_height is None)
-        or (target_width is not None and target_height is not None)), \
-            'Either both or neither of target width and height must be provided.'
+    assert (target_width is None and target_height is None) or (
+        target_width is not None and target_height is not None
+    ), "Either both or neither of target width and height must be provided."
     if target_width is None and target_height is None:
         target_width = w
         target_height = h
     scale = min(target_width / w, target_height / h)
-    M = cv2.getPerspectiveTransform(src=box,
-                                    dst=np.array([[margin, margin], [scale * w - margin, margin],
-                                                  [scale * w - margin, scale * h - margin],
-                                                  [margin, scale * h - margin]]).astype('float32'))
+    M = cv2.getPerspectiveTransform(
+        src=box,
+        dst=np.array(
+            [
+                [margin, margin],
+                [scale * w - margin, margin],
+                [scale * w - margin, scale * h - margin],
+                [margin, scale * h - margin],
+            ]
+        ).astype("float32"),
+    )
     crop = cv2.warpPerspective(image, M, dsize=(int(scale * w), int(scale * h)))
-    target_shape = (target_height, target_width, 3) if len(image.shape) == 3 else (target_height,
-                                                                                   target_width)
-    full = (np.zeros(target_shape) + cval).astype('uint8')
-    full[:crop.shape[0], :crop.shape[1]] = crop
+    target_shape = (
+        (target_height, target_width, 3)
+        if len(image.shape) == 3
+        else (target_height, target_width)
+    )
+    full = (np.zeros(target_shape) + cval).astype("uint8")
+    full[: crop.shape[0], : crop.shape[1]] = crop
     if return_transform:
         return full, M
     return full
@@ -114,10 +130,13 @@ def combine_line(line):
     Returns:
         A (box, text) tuple
     """
-    text = ''.join([character if character is not None else '' for _, character in line])
-    box = np.concatenate([coords[:2] for coords, _ in line] +
-                         [np.array([coords[3], coords[2]])
-                          for coords, _ in reversed(line)]).astype('float32')
+    text = "".join(
+        [character if character is not None else "" for _, character in line]
+    )
+    box = np.concatenate(
+        [coords[:2] for coords, _ in line]
+        + [np.array([coords[3], coords[2]]) for coords, _ in reversed(line)]
+    ).astype("float32")
     first_point = box[0]
     rectangle = cv2.minAreaRect(box)
     box = cv2.boxPoints(rectangle)
@@ -137,7 +156,7 @@ def drawAnnotations(image, predictions, ax=None):
     """
     if ax is None:
         _, ax = plt.subplots()
-    ax.imshow(drawBoxes(image=image, boxes=predictions, boxes_format='predictions'))
+    ax.imshow(drawBoxes(image=image, boxes=predictions, boxes_format="predictions"))
     predictions = sorted(predictions, key=lambda p: p[1][:, 1].min())
     left = []
     right = []
@@ -148,26 +167,25 @@ def drawAnnotations(image, predictions, ax=None):
             right.append((word, box))
     ax.set_yticks([])
     ax.set_xticks([])
-    for side, group in zip(['left', 'right'], [left, right]):
+    for side, group in zip(["left", "right"], [left, right]):
         for index, (text, box) in enumerate(group):
             y = 1 - (index / len(group))
             xy = box[0] / np.array([image.shape[1], image.shape[0]])
             xy[1] = 1 - xy[1]
-            ax.annotate(s=text,
-                        xy=xy,
-                        xytext=(-0.05 if side == 'left' else 1.05, y),
-                        xycoords='axes fraction',
-                        arrowprops={
-                            'arrowstyle': '->',
-                            'color': 'r'
-                        },
-                        color='r',
-                        fontsize=14,
-                        horizontalalignment='right' if side == 'left' else 'left')
+            ax.annotate(
+                s=text,
+                xy=xy,
+                xytext=(-0.05 if side == "left" else 1.05, y),
+                xycoords="axes fraction",
+                arrowprops={"arrowstyle": "->", "color": "r"},
+                color="r",
+                fontsize=14,
+                horizontalalignment="right" if side == "left" else "left",
+            )
     return ax
 
 
-def drawBoxes(image, boxes, color=(255, 0, 0), thickness=5, boxes_format='boxes'):
+def drawBoxes(image, boxes, color=(255, 0, 0), thickness=5, boxes_format="boxes"):
     """Draw boxes onto an image.
 
     Args:
@@ -188,27 +206,29 @@ def drawBoxes(image, boxes, color=(255, 0, 0), thickness=5, boxes_format='boxes'
     if len(boxes) == 0:
         return image
     canvas = image.copy()
-    if boxes_format == 'lines':
+    if boxes_format == "lines":
         revised_boxes = []
         for line in boxes:
             for box, _ in line:
                 revised_boxes.append(box)
         boxes = revised_boxes
-    if boxes_format == 'predictions':
+    if boxes_format == "predictions":
         revised_boxes = []
         for _, box in boxes:
             revised_boxes.append(box)
         boxes = revised_boxes
     for box in boxes:
-        cv2.polylines(img=canvas,
-                      pts=box[np.newaxis].astype('int32'),
-                      color=color,
-                      thickness=thickness,
-                      isClosed=True)
+        cv2.polylines(
+            img=canvas,
+            pts=box[np.newaxis].astype("int32"),
+            color=color,
+            thickness=thickness,
+            isClosed=True,
+        )
     return canvas
 
 
-def adjust_boxes(boxes, boxes_format='boxes', scale=1):
+def adjust_boxes(boxes, boxes_format="boxes", scale=1):
     """Adjust boxes using a given scale and offset.
 
     Args:
@@ -219,22 +239,27 @@ def adjust_boxes(boxes, boxes_format='boxes', scale=1):
     """
     if scale == 1:
         return boxes
-    if boxes_format == 'boxes':
+    if boxes_format == "boxes":
         return np.array(boxes) * scale
-    if boxes_format == 'lines':
-        return [[(np.array(box) * scale, character) for box, character in line] for line in boxes]
-    if boxes_format == 'predictions':
+    if boxes_format == "lines":
+        return [
+            [(np.array(box) * scale, character) for box, character in line]
+            for line in boxes
+        ]
+    if boxes_format == "predictions":
         return [(word, np.array(box) * scale) for word, box in boxes]
-    raise NotImplementedError(f'Unsupported boxes format: {boxes_format}')
+    raise NotImplementedError(f"Unsupported boxes format: {boxes_format}")
 
 
-def augment(boxes,
-            augmenter: imgaug.augmenters.meta.Augmenter,
-            image=None,
-            boxes_format='boxes',
-            image_shape=None,
-            area_threshold=0.5,
-            min_area=None):
+def augment(
+    boxes,
+    augmenter: imgaug.augmenters.meta.Augmenter,
+    image=None,
+    boxes_format="boxes",
+    image_shape=None,
+    area_threshold=0.5,
+    min_area=None,
+):
     """Augment an image and associated boxes together.
 
     Args:
@@ -258,8 +283,10 @@ def augment(boxes,
     else:
         image_augmented = None
         width_augmented, height_augmented = augmenter.augment_keypoints(
-            imgaug.KeypointsOnImage.from_xy_array(xy=[[image_shape[1], image_shape[0]]],
-                                                  shape=image_shape)).to_xy_array()[0]
+            imgaug.KeypointsOnImage.from_xy_array(
+                xy=[[image_shape[1], image_shape[0]]], shape=image_shape
+            )
+        ).to_xy_array()[0]
         image_augmented_shape = (height_augmented, width_augmented)
 
     def box_inside_image(box):
@@ -270,34 +297,50 @@ def augment(boxes,
         clipped[:, 0] = clipped[:, 0].clip(0, image_augmented_shape[1])
         clipped[:, 1] = clipped[:, 1].clip(0, image_augmented_shape[0])
         area_after = cv2.contourArea(np.int32(clipped)[:, np.newaxis, :])
-        return ((area_after / area_before) >= area_threshold) and (min_area is None or
-                                                                   area_after > min_area), clipped
+        return ((area_after / area_before) >= area_threshold) and (
+            min_area is None or area_after > min_area
+        ), clipped
 
     def augment_box(box):
         return augmenter.augment_keypoints(
-            imgaug.KeypointsOnImage.from_xy_array(box, shape=image_shape)).to_xy_array()
+            imgaug.KeypointsOnImage.from_xy_array(box, shape=image_shape)
+        ).to_xy_array()
 
-    if boxes_format == 'boxes':
+    if boxes_format == "boxes":
         boxes_augmented = [
-            box for inside, box in [box_inside_image(box) for box in map(augment_box, boxes)]
+            box
+            for inside, box in [
+                box_inside_image(box) for box in map(augment_box, boxes)
+            ]
             if inside
         ]
-    elif boxes_format == 'lines':
-        boxes_augmented = [[(augment_box(box), character) for box, character in line]
-                           for line in boxes]
-        boxes_augmented = [[(box, character)
-                            for (inside, box), character in [(box_inside_image(box), character)
-                                                             for box, character in line] if inside]
-                           for line in boxes_augmented]
+    elif boxes_format == "lines":
+        boxes_augmented = [
+            [(augment_box(box), character) for box, character in line] for line in boxes
+        ]
+        boxes_augmented = [
+            [
+                (box, character)
+                for (inside, box), character in [
+                    (box_inside_image(box), character) for box, character in line
+                ]
+                if inside
+            ]
+            for line in boxes_augmented
+        ]
         # Sometimes all the characters in a line are removed.
         boxes_augmented = [line for line in boxes_augmented if line]
-    elif boxes_format == 'predictions':
+    elif boxes_format == "predictions":
         boxes_augmented = [(word, augment_box(box)) for word, box in boxes]
-        boxes_augmented = [(word, box) for word, (inside, box) in [(word, box_inside_image(box))
-                                                                   for word, box in boxes_augmented]
-                           if inside]
+        boxes_augmented = [
+            (word, box)
+            for word, (inside, box) in [
+                (word, box_inside_image(box)) for word, box in boxes_augmented
+            ]
+            if inside
+        ]
     else:
-        raise NotImplementedError(f'Unsupported boxes format: {boxes_format}')
+        raise NotImplementedError(f"Unsupported boxes format: {boxes_format}")
     return image_augmented, boxes_augmented
 
 
@@ -311,14 +354,15 @@ def pad(image, width: int, height: int, cval: int = 255):
         height: The output height
         cval: The value to use for filling the image.
     """
+    output_shape: typing.Union[typing.Tuple[int, int, int], typing.Tuple[int, int]]
     if len(image.shape) == 3:
         output_shape = (height, width, image.shape[-1])
     else:
         output_shape = (height, width)
-    assert height >= output_shape[0], 'Input height must be less than output height.'
-    assert width >= output_shape[1], 'Input width must be less than output width.'
+    assert height >= output_shape[0], "Input height must be less than output height."
+    assert width >= output_shape[1], "Input width must be less than output width."
     padded = np.zeros(output_shape, dtype=image.dtype) + cval
-    padded[:image.shape[0], :image.shape[1]] = image
+    padded[: image.shape[0], : image.shape[1]] = image
     return padded
 
 
@@ -337,12 +381,23 @@ def resize_image(image, max_scale, max_size):
     else:
         # We are contrained by scale
         scale = max_scale
-    return cv2.resize(image,
-                      dsize=(int(image.shape[1] * scale), int(image.shape[0] * scale))), scale
+    return (
+        cv2.resize(
+            image, dsize=(int(image.shape[1] * scale), int(image.shape[0] * scale))
+        ),
+        scale,
+    )
 
 
 # pylint: disable=too-many-arguments
-def fit(image, width: int, height: int, cval: int = 255, mode='letterbox', return_scale=False):
+def fit(
+    image,
+    width: int,
+    height: int,
+    cval: int = 255,
+    mode="letterbox",
+    return_scale=False,
+):
     """Obtain a new image, fit to the specified size.
 
     Args:
@@ -362,7 +417,9 @@ def fit(image, width: int, height: int, cval: int = 255, mode='letterbox', retur
     if x_scale == 1 and y_scale == 1:
         fitted = image
         scale = 1
-    elif (x_scale <= y_scale and mode == 'letterbox') or (x_scale >= y_scale and mode == 'crop'):
+    elif (x_scale <= y_scale and mode == "letterbox") or (
+        x_scale >= y_scale and mode == "crop"
+    ):
         scale = width / image.shape[1]
         resize_width = width
         resize_height = (width / image.shape[1]) * image.shape[0]
@@ -372,25 +429,27 @@ def fit(image, width: int, height: int, cval: int = 255, mode='letterbox', retur
         resize_width = scale * image.shape[1]
     if fitted is None:
         resize_width, resize_height = map(int, [resize_width, resize_height])
-        if mode == 'letterbox':
-            fitted = np.zeros((height, width, 3), dtype='uint8') + cval
+        if mode == "letterbox":
+            fitted = np.zeros((height, width, 3), dtype="uint8") + cval
             image = cv2.resize(image, dsize=(resize_width, resize_height))
-            fitted[:image.shape[0], :image.shape[1]] = image[:height, :width]
-        elif mode == 'crop':
+            fitted[: image.shape[0], : image.shape[1]] = image[:height, :width]
+        elif mode == "crop":
             image = cv2.resize(image, dsize=(resize_width, resize_height))
             fitted = image[:height, :width]
         else:
-            raise NotImplementedError(f'Unsupported mode: {mode}')
+            raise NotImplementedError(f"Unsupported mode: {mode}")
     if not return_scale:
         return fitted
     return fitted, scale
 
 
-def read_and_fit(filepath_or_array: typing.Union[str, np.ndarray],
-                 width: int,
-                 height: int,
-                 cval: int = 255,
-                 mode='letterbox'):
+def read_and_fit(
+    filepath_or_array: typing.Union[str, np.ndarray],
+    width: int,
+    height: int,
+    cval: int = 255,
+    mode="letterbox",
+):
     """Read an image from disk and fit to the specified size.
 
     Args:
@@ -404,7 +463,11 @@ def read_and_fit(filepath_or_array: typing.Union[str, np.ndarray],
     Returns:
         The new image
     """
-    image = read(filepath_or_array) if isinstance(filepath_or_array, str) else filepath_or_array
+    image = (
+        read(filepath_or_array)
+        if isinstance(filepath_or_array, str)
+        else filepath_or_array
+    )
     image = fit(image=image, width=width, height=height, cval=cval, mode=mode)
     return image
 
@@ -414,15 +477,16 @@ def sha256sum(filename):
     h = hashlib.sha256()
     b = bytearray(128 * 1024)
     mv = memoryview(b)
-    with open(filename, 'rb', buffering=0) as f:
-        for n in iter(lambda: f.readinto(mv), 0):
+    with open(filename, "rb", buffering=0) as f:
+        for n in iter(lambda: f.readinto(mv), 0):  # type: ignore
             h.update(mv[:n])
     return h.hexdigest()
 
 
 def get_default_cache_dir():
-    return os.environ.get('KERAS_OCR_CACHE_DIR', os.path.expanduser(os.path.join('~',
-                                                                                 '.keras-ocr')))
+    return os.environ.get(
+        "KERAS_OCR_CACHE_DIR", os.path.expanduser(os.path.join("~", ".keras-ocr"))
+    )
 
 
 def download_and_verify(url, sha256=None, cache_dir=None, verbose=True, filename=None):
@@ -446,19 +510,23 @@ def download_and_verify(url, sha256=None, cache_dir=None, verbose=True, filename
     filepath = os.path.join(cache_dir, filename)
     os.makedirs(os.path.split(filepath)[0], exist_ok=True)
     if verbose:
-        print('Looking for ' + filepath)
+        print("Looking for " + filepath)
     if not os.path.isfile(filepath) or (sha256 and sha256sum(filepath) != sha256):
         if verbose:
-            print('Downloading ' + filepath)
+            print("Downloading " + filepath)
         urllib.request.urlretrieve(url, filepath)
-    assert sha256 is None or sha256 == sha256sum(filepath), 'Error occurred verifying sha256.'
+    assert sha256 is None or sha256 == sha256sum(
+        filepath
+    ), "Error occurred verifying sha256."
     return filepath
 
 
 def get_rotated_box(
-    points
-) -> typing.Tuple[typing.Tuple[float, float], typing.Tuple[float, float], typing.Tuple[
-        float, float], typing.Tuple[float, float], float]:
+    points,
+) -> typing.Tuple[
+    np.ndarray,
+    float,
+]:
     """Obtain the parameters of a rotated box.
 
     Returns:
@@ -468,7 +536,9 @@ def get_rotated_box(
     """
     try:
         mp = geometry.MultiPoint(points=points)
-        pts = np.array(list(zip(*mp.minimum_rotated_rectangle.exterior.xy)))[:-1]  # noqa: E501
+        pts = np.array(list(zip(*mp.minimum_rotated_rectangle.exterior.xy)))[
+            :-1
+        ]  # noqa: E501
     except AttributeError:
         # There weren't enough points for the minimum rotated rectangle function
         pts = points
@@ -520,5 +590,5 @@ def fix_line(line):
     sortedx = centers[:, 0].argsort()
     sortedy = centers[:, 1].argsort()
     if np.diff(centers[sortedy][:, 1]).sum() > np.diff(centers[sortedx][:, 0]).sum():
-        return [line[idx] for idx in sortedy], 'vertical'
-    return [line[idx] for idx in sortedx], 'horizontal'
+        return [line[idx] for idx in sortedy], "vertical"
+    return [line[idx] for idx in sortedx], "horizontal"

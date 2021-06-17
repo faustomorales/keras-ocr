@@ -1,4 +1,4 @@
-class Object():
+class Object:
     def __init__(self, *args, **kwargs):
         pass
 
@@ -12,7 +12,7 @@ class Object():
         return Object()
 
     def __mro_entries__(self, _):
-        return (Object(), )
+        return (Object(),)
 
 
 backend = Object()

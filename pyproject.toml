@@ -1,0 +1,82 @@
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.run]
+omit = []
+
+[tool.poetry]
+authors = ["Fausto Morales <faustomorales@gmail.com>"]
+classifiers = [
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
+description = "A packaged and flexible version of the CRAFT text detector and Keras CRNN recognition model."
+homepage = "https://github.com/faustomorales/keras-ocr"
+license = "MIT"
+name = "keras-ocr"
+readme = "README.md"
+repository = "https://github.com/faustomorales/keras-ocr"
+# Placeholder for poetry-dynamic-versioning
+version = "0.0.0"
+
+# See https://python-poetry.org/docs/versions/ for allowed version specification formats
+[tool.poetry.dependencies]
+python = "^3.6"
+validators = "*"
+essential_generators = "*"
+tqdm = "*"
+imgaug = "*"
+fonttools = "*"
+editdistance = "*"
+pyclipper = "*"
+shapely = "*"
+efficientnet = "1.0.0"
+
+[tool.poetry.dev-dependencies]
+black = "*"
+coverage = {version = "*", extras = ["toml"]}
+mypy = "*"
+pytest = "^6.1"
+pylint = "*"
+pytest-cov = "*"
+tensorflow = [
+    { version = '2.4.2', platform = 'linux' },  # Installing TensorFlow on MacOS and Windows varies too much.
+]
+tensorflow-addons = "0.13.0"
+opencv-python = "*"
+types-requests = "^0.1.12"
+types-pkg-resources = "^0.1.3"
+
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "semver"
+
+[tool.pytest.ini_options]
+addopts = "--cov=keras_ocr --cov-report=term-missing"
+filterwarnings = [
+    "ignore:the imp module is deprecated in favour of importlib;:DeprecationWarning"
+]
+
+[tool.pylint.messages_control]
+disable = [
+    "line-too-long",
+    "missing-module-docstring",
+    "invalid-name",
+    "attribute-defined-outside-init",
+    "too-many-locals",
+    "too-many-arguments",
+    "too-many-branches",
+    "too-many-statements"
+]
+extension-pkg-whitelist = [
+    "cv2",
+    "torch",
+    "pyclipper"
+]

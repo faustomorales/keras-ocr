@@ -1,5 +1,6 @@
 # pylint: disable=invalid-name,too-many-locals
 import copy
+import typing
 import warnings
 
 import editdistance
@@ -26,18 +27,28 @@ def iou_score(box1, box2):
         x1, y1 = box2[0]
         x2, y2 = box2[1]
         box2 = np.array([[x1, y1], [x2, y1], [x2, y2], [x1, y2]])
-    if any(cv2.contourArea(np.int32(box)[:, np.newaxis, :]) == 0 for box in [box1, box2]):
-        warnings.warn('A box with zero area was detected.')
+    if any(
+        cv2.contourArea(np.int32(box)[:, np.newaxis, :]) == 0 for box in [box1, box2]
+    ):
+        warnings.warn("A box with zero area was detected.")
         return 0
     pc = pyclipper.Pyclipper()
     pc.AddPath(np.int32(box1), pyclipper.PT_SUBJECT, closed=True)
     pc.AddPath(np.int32(box2), pyclipper.PT_CLIP, closed=True)
-    intersection_solutions = pc.Execute(pyclipper.CT_INTERSECTION, pyclipper.PFT_EVENODD,
-                                        pyclipper.PFT_EVENODD)
-    union_solutions = pc.Execute(pyclipper.CT_UNION, pyclipper.PFT_EVENODD, pyclipper.PFT_EVENODD)
-    union = sum(cv2.contourArea(np.int32(points)[:, np.newaxis, :]) for points in union_solutions)
+    intersection_solutions = pc.Execute(
+        pyclipper.CT_INTERSECTION, pyclipper.PFT_EVENODD, pyclipper.PFT_EVENODD
+    )
+    union_solutions = pc.Execute(
+        pyclipper.CT_UNION, pyclipper.PFT_EVENODD, pyclipper.PFT_EVENODD
+    )
+    union = sum(
+        cv2.contourArea(np.int32(points)[:, np.newaxis, :])
+        for points in union_solutions
+    )
     intersection = sum(
-        cv2.contourArea(np.int32(points)[:, np.newaxis, :]) for points in intersection_solutions)
+        cv2.contourArea(np.int32(points)[:, np.newaxis, :])
+        for points in intersection_solutions
+    )
     return intersection / union
 
 
@@ -66,13 +77,14 @@ def score(true, pred, iou_threshold=0.5, similarity_threshold=0.5, translator=No
     """
     true_ids = sorted(true)
     pred_ids = sorted(pred)
-    assert all(true_id == pred_id for true_id, pred_id in zip(
-        true_ids, pred_ids)), 'true and pred dictionaries must have the same keys'
-    results = {
-        'true_positives': [],
-        'false_positives': [],
-        'near_true_positives': [],
-        'false_negatives': []
+    assert all(
+        true_id == pred_id for true_id, pred_id in zip(true_ids, pred_ids)
+    ), "true and pred dictionaries must have the same keys"
+    results: typing.Dict[str, typing.List[dict]] = {
+        "true_positives": [],
+        "false_positives": [],
+        "near_true_positives": [],
+        "false_negatives": [],
     }
     for image_id in true_ids:
         true_anns = true[image_id]
@@ -81,13 +93,17 @@ def score(true, pred, iou_threshold=0.5, similarity_threshold=0.5, translator=No
         for true_index, true_ann in enumerate(true_anns):
             match = None
             for pred_index, pred_ann in enumerate(pred_anns):
-                iou = iou_score(true_ann['vertices'], pred_ann['vertices'])
+                iou = iou_score(true_ann["vertices"], pred_ann["vertices"])
                 if iou >= iou_threshold:
-                    match = {'true_idx': true_index, 'pred_idx': pred_index, 'image_id': image_id}
+                    match = {
+                        "true_idx": true_index,
+                        "pred_idx": pred_index,
+                        "image_id": image_id,
+                    }
                     pred_matched.add(pred_index)
-                    true_text = true_ann['text']
-                    pred_text = pred_ann['text']
-                    if true_ann.get('ignore', False):
+                    true_text = true_ann["text"]
+                    pred_text = pred_ann["text"]
+                    if true_ann.get("ignore", False):
                         # We recorded that this prediction matched something,
                         # so it won't be a false positive. But we're also ignoring
                         # this ground truth label so we won't count it as a true
@@ -100,23 +116,31 @@ def score(true, pred, iou_threshold=0.5, similarity_threshold=0.5, translator=No
                     if edit_distance_norm == 0:
                         similarity = 1
                     else:
-                        similarity = 1 - (editdistance.eval(true_text, pred_text) /
-                                          max(len(true_text), len(pred_text)))
+                        similarity = 1 - (
+                            editdistance.eval(true_text, pred_text)
+                            / max(len(true_text), len(pred_text))
+                        )
                     if similarity >= similarity_threshold:
-                        results['true_positives'].append(match)
+                        results["true_positives"].append(match)
                     else:
-                        results['near_true_positives'].append(match)
-            if match is None and not true_ann.get('ignore', False):
-                results['false_negatives'].append({'image_id': image_id, 'true_idx': true_index})
-        results['false_positives'].extend({
-            'pred_index': pred_index,
-            'image_id': image_id
-        } for pred_index, _ in enumerate(pred_anns) if pred_index not in pred_matched)
-    fns = len(results['false_negatives'])
-    fps = len(results['false_positives'])
+                        results["near_true_positives"].append(match)
+            if match is None and not true_ann.get("ignore", False):
+                results["false_negatives"].append(
+                    {"image_id": image_id, "true_idx": true_index}
+                )
+        results["false_positives"].extend(
+            {"pred_index": pred_index, "image_id": image_id}
+            for pred_index, _ in enumerate(pred_anns)
+            if pred_index not in pred_matched
+        )
+    fns = len(results["false_negatives"])
+    fps = len(results["false_positives"])
     tps = len(
-        set((true_positive['image_id'], true_positive['true_idx'])
-            for true_positive in results['true_positives']))
+        set(
+            (true_positive["image_id"], true_positive["true_idx"])
+            for true_positive in results["true_positives"]
+        )
+    )
     precision = tps / (tps + fps)
     recall = tps / (tps + fns)
     return results, (precision, recall)

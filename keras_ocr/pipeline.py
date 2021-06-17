@@ -14,6 +14,7 @@ class Pipeline:
         max_size: The maximum single-side dimension of images for
             inference.
     """
+
     def __init__(self, detector=None, recognizer=None, scale=2, max_size=2048):
         if detector is None:
             detector = detection.Detector()
@@ -44,21 +45,28 @@ class Pipeline:
             tools.resize_image(image, max_scale=self.scale, max_size=self.max_size)
             for image in images
         ]
-        max_height, max_width = np.array([image.shape[:2] for image, scale in images]).max(axis=0)
+        max_height, max_width = np.array(
+            [image.shape[:2] for image, scale in images]
+        ).max(axis=0)
         scales = [scale for _, scale in images]
         images = np.array(
-            [tools.pad(image, width=max_width, height=max_height) for image, _ in images])
+            [
+                tools.pad(image, width=max_width, height=max_height)
+                for image, _ in images
+            ]
+        )
         if detection_kwargs is None:
             detection_kwargs = {}
         if recognition_kwargs is None:
             recognition_kwargs = {}
         box_groups = self.detector.detect(images=images, **detection_kwargs)
-        prediction_groups = self.recognizer.recognize_from_boxes(images=images,
-                                                                 box_groups=box_groups,
-                                                                 **recognition_kwargs)
+        prediction_groups = self.recognizer.recognize_from_boxes(
+            images=images, box_groups=box_groups, **recognition_kwargs
+        )
         box_groups = [
-            tools.adjust_boxes(boxes=boxes, boxes_format='boxes', scale=1 /
-                               scale) if scale != 1 else boxes
+            tools.adjust_boxes(boxes=boxes, boxes_format="boxes", scale=1 / scale)
+            if scale != 1
+            else boxes
             for boxes, scale in zip(box_groups, scales)
         ]
         return [
