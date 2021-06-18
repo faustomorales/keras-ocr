@@ -5,3 +5,4 @@ sphinx_rtd_theme==0.4.3
 m2r==0.2.1
 opencv-contrib-python-headless
 tqdm
+typing-extensions
