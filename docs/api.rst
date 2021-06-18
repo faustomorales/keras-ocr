@@ -41,10 +41,3 @@ and :doc:`fine-tuning recognizer <examples/fine_tuning_recognizer>` examples.
 .. automodule:: keras_ocr.datasets
         :members:
 
-Custom Objects
-**************
-
-These are experimental objects to be used for custom operations with Keras.
-
-.. automodule:: keras_ocr.custom_objects
-        :members:

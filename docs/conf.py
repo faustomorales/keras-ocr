@@ -29,10 +29,10 @@ project = "keras_ocr"
 copyright = "2019, Fausto Morales"
 author = "Fausto Morales"
 
-import keras_ocr._version
+import keras_ocr
 
 # The short X.Y version
-version = keras_ocr._version.get_versions()["version"]
+version = keras_ocr.__version__
 # The full version, including alpha/beta/rc tags
 # release = ''
 
