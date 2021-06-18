@@ -415,7 +415,7 @@ def draw_text_image(
     end_y = transformed_contour[:, 1].max()
     image = PIL.Image.new(mode="RGBA", size=(width, height), color=(255, 255, 255, 0))
     draw = PIL.ImageDraw.Draw(image)
-    lines = [[]]
+    lines_raw: typing.List[typing.List[typing.Tuple[np.ndarray, str]]] = [[]]
     x = start_x
     y = start_y
     max_y = start_y
@@ -447,18 +447,18 @@ def draw_text_image(
                 x = start_x
             else:
                 x += fontsize
-            if len(lines[-1]) > 0:
+            if len(lines_raw[-1]) > 0:
                 # We add a new line whether we have advanced
                 # in the y-direction or not because we also want to separate
                 # horizontal segments of text.
-                lines.append([])
+                lines_raw.append([])
             x2, y2 = (x + character_width + offset_x, y + character_height + offset_y)
         if out_of_space:
             break
         max_y = max(y + character_height + offset_y, max_y)
         draw.text(xy=(x, y), text=character, fill=color + (255,), font=font)
         for subcharacter in subcharacters:
-            lines[-1].append(
+            lines_raw[-1].append(
                 (
                     np.array(
                         [
@@ -481,15 +481,15 @@ def draw_text_image(
             color=(255, 0, 0, 255),
             thickness=int(width / 100),
         )
-    lines = _strip_lines(lines)
-    lines = [
+    lines_stripped = _strip_lines(lines_raw)
+    lines_transformed = [
         [
             (cv2.perspectiveTransform(src=coords[np.newaxis], m=M)[0], character)
             for coords, character in line
         ]
-        for line in lines
+        for line in lines_stripped
     ]
-    return image, lines
+    return image, lines_transformed
 
 
 def compute_transformed_contour(width, height, fontsize, M, contour, minarea=0.5):

@@ -10,6 +10,7 @@ import cv2
 import imgaug
 import numpy as np
 import validators
+import typing_extensions as tx
 import matplotlib.pyplot as plt
 from shapely import geometry
 from scipy import spatial
@@ -228,7 +229,36 @@ def drawBoxes(image, boxes, color=(255, 0, 0), thickness=5, boxes_format="boxes"
     return canvas
 
 
-def adjust_boxes(boxes, boxes_format="boxes", scale=1):
+@typing.overload
+def adjust_boxes(
+    boxes, scale=1, boxes_format: tx.Literal["lines"] = "lines"
+) -> typing.List[typing.Tuple[np.ndarray, str]]:
+    ...
+
+
+@typing.overload
+def adjust_boxes(
+    boxes, scale=1, boxes_format: tx.Literal["predictions"] = "predictions"
+) -> typing.List[typing.Tuple[str, np.ndarray]]:
+    ...
+
+
+@typing.overload
+def adjust_boxes(
+    boxes, scale=1, boxes_format: tx.Literal["boxes"] = "boxes"
+) -> np.ndarray:
+    ...
+
+
+def adjust_boxes(
+    boxes,
+    scale=1,
+    boxes_format: tx.Literal["boxes", "predictions", "lines"] = "boxes",
+) -> typing.Union[
+    np.ndarray,
+    typing.List[typing.Tuple[np.ndarray, str]],
+    typing.List[typing.Tuple[str, np.ndarray]],
+]:
     """Adjust boxes using a given scale and offset.
 
     Args:
@@ -523,10 +553,7 @@ def download_and_verify(url, sha256=None, cache_dir=None, verbose=True, filename
 
 def get_rotated_box(
     points,
-) -> typing.Tuple[
-    np.ndarray,
-    float,
-]:
+) -> typing.Tuple[np.ndarray, float,]:
     """Obtain the parameters of a rotated box.
 
     Returns:

@@ -73,7 +73,9 @@ disable = [
     "too-many-locals",
     "too-many-arguments",
     "too-many-branches",
-    "too-many-statements"
+    "too-many-statements",
+    "missing-function-docstring",
+    "missing-class-docstring"
 ]
 extension-pkg-whitelist = [
     "cv2",

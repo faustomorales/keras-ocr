@@ -24,7 +24,7 @@ DEFAULT_BUILD_PARAMS = {
 
 DEFAULT_ALPHABET = string.digits + string.ascii_lowercase
 
-PRETRAINED_WEIGHTS = {
+PRETRAINED_WEIGHTS: typing.Dict[str, typing.Any] = {
     "kurapan": {
         "alphabet": DEFAULT_ALPHABET,
         "build_params": DEFAULT_BUILD_PARAMS,
@@ -493,7 +493,9 @@ class Recognizer:
             ]
         )
 
-    def recognize_from_boxes(self, images, box_groups, **kwargs) -> typing.List[str]:
+    def recognize_from_boxes(
+        self, images, box_groups, **kwargs
+    ) -> typing.List[typing.List[str]]:
         """Recognize text from images using lists of bounding boxes.
 
         Args:
@@ -505,7 +507,7 @@ class Recognizer:
             images
         ), "You must provide the same number of box groups as images."
         crops = []
-        start_end = []
+        start_end: typing.List[typing.Tuple[int, int]] = []
         for image, boxes in zip(images, box_groups):
             image = tools.read(image)
             if self.prediction_model.input_shape[-1] == 1 and image.shape[-1] == 3:
@@ -523,7 +525,7 @@ class Recognizer:
             start = 0 if not start_end else start_end[-1][1]
             start_end.append((start, start + len(boxes)))
         if not crops:
-            return [[] for image in images]
+            return [[]] * len(images)
         X = np.float32(crops) / 255
         if len(X.shape) == 3:
             X = X[..., np.newaxis]

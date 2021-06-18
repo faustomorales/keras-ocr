@@ -8,3 +8,4 @@ dist
 __pycache__
 versioneer.pyc
 poetry.lock
+.vscode

@@ -1,7 +1,8 @@
 # pylint: disable=line-too-long,invalid-name,too-many-arguments,too-many-locals
-import concurrent
+import concurrent.futures
 import itertools
 import warnings
+import typing
 import zipfile
 import random
 import glob
@@ -24,14 +25,14 @@ def _read_born_digital_labels_file(labels_filepath, image_folder):
         image_folder: Path to folder containing images
     """
     with open(labels_filepath, encoding="utf-8-sig") as f:
-        labels = [l.strip().split(",") for l in f.readlines()]
+        labels_raw = [l.strip().split(",") for l in f.readlines()]
         labels = [
             (
                 os.path.join(image_folder, segments[0]),
                 None,
                 ",".join(segments[1:]).strip()[1:-1],
             )
-            for segments in labels
+            for segments in labels_raw
         ]
     return labels
 
@@ -256,13 +257,13 @@ def get_icdar_2013_detector_dataset(cache_dir=None, skip_illegible=False):
         image_path = os.path.join(training_images_dir, image_id + ".jpg")
         lines = []
         with open(gt_filepath, "r") as f:
-            current_line = []
-            for row in f.read().split("\n"):
-                if row == "":
+            current_line: typing.List[typing.Tuple[np.ndarray, str]] = []
+            for raw_row in f.read().split("\n"):
+                if raw_row == "":
                     lines.append(current_line)
                     current_line = []
                 else:
-                    row = row.split(" ")[5:]
+                    row = raw_row.split(" ")[5:]
                     character = row[-1][1:-1]
                     if character == "" and skip_illegible:
                         continue
