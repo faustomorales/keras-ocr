@@ -184,7 +184,11 @@ def _strip_lines(lines):
     return lines
 
 
-def get_backgrounds(cache_dir=None):
+def get_backgrounds(
+        backgrounds_zip_path=None,
+        backgrounds_dir=None,
+        cache_dir=None
+    ):
     """Download a set of pre-reviewed backgrounds.
 
     Args:
@@ -194,15 +198,16 @@ def get_backgrounds(cache_dir=None):
     Returns:
         A list of background filepaths.
     """
-    if cache_dir is None:
-        cache_dir = os.path.expanduser(os.path.join("~", ".keras-ocr"))
-    backgrounds_dir = os.path.join(cache_dir, "backgrounds")
-    backgrounds_zip_path = tools.download_and_verify(
-        url="https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/backgrounds.zip",
-        sha256="f263ed0d55de303185cc0f93e9fcb0b13104d68ed71af7aaaa8e8c91389db471",
-        filename="backgrounds.zip",
-        cache_dir=cache_dir,
-    )
+    if not backgrounds_dir or not backgrounds_zip_path:
+        if cache_dir is None:
+            cache_dir = os.path.expanduser(os.path.join("~", ".keras-ocr"))
+        backgrounds_dir = os.path.join(cache_dir, "backgrounds")
+        backgrounds_zip_path = tools.download_and_verify(
+            url="https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/backgrounds.zip",
+            sha256="f263ed0d55de303185cc0f93e9fcb0b13104d68ed71af7aaaa8e8c91389db471",
+            filename="backgrounds.zip",
+            cache_dir=cache_dir,
+        )    
     if len(glob.glob(os.path.join(backgrounds_dir, "*"))) != 1035:
         with zipfile.ZipFile(backgrounds_zip_path) as zfile:
             zfile.extractall(backgrounds_dir)
@@ -210,6 +215,8 @@ def get_backgrounds(cache_dir=None):
 
 
 def get_fonts(
+    fonts_dir=None,
+    fonts_zip_path=None,
     cache_dir=None,
     alphabet=string.ascii_letters + string.digits,
     exclude_smallcaps=False,
@@ -229,15 +236,16 @@ def get_fonts(
     Returns:
         A list of font filepaths.
     """
-    if cache_dir is None:
-        cache_dir = os.path.expanduser(os.path.join("~", ".keras-ocr"))
-    fonts_zip_path = tools.download_and_verify(
-        url="https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/fonts.zip",
-        sha256="d4d90c27a9bc4bf8fff1d2c0a00cfb174c7d5d10f60ed29d5f149ef04d45b700",
-        filename="fonts.zip",
-        cache_dir=cache_dir,
-    )
-    fonts_dir = os.path.join(cache_dir, "fonts")
+    if not fonts_dir or not fonts_zip_path:
+        if cache_dir is None:
+            cache_dir = os.path.expanduser(os.path.join("~", ".keras-ocr"))
+        fonts_zip_path = tools.download_and_verify(
+            url="https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/fonts.zip",
+            sha256="d4d90c27a9bc4bf8fff1d2c0a00cfb174c7d5d10f60ed29d5f149ef04d45b700",
+            filename="fonts.zip",
+            cache_dir=cache_dir,
+        )
+        fonts_dir = os.path.join(cache_dir, "fonts")
     if len(glob.glob(os.path.join(fonts_dir, "**/*.ttf"))) != 2746:
         print("Unzipping fonts ZIP file.")
         with zipfile.ZipFile(fonts_zip_path) as zfile:
