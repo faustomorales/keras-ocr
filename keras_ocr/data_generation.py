@@ -16,6 +16,7 @@ import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
 import fontTools.ttLib
+from skimage.util import random_noise
 
 from . import tools
 
@@ -717,6 +718,7 @@ def get_image_generator(
             color=text_color,
             draw_contour=draw_contour_text,
         )
+        text_image = random_noise(text_image, mode='gaussian', mean=0.2)
         alpha = text_image[..., -1:].astype("float32") / 255
         image = (alpha * text_image[..., :3] + (1 - alpha) * current_background).astype(
             "uint8"
