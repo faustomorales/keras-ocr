@@ -207,8 +207,8 @@ def get_backgrounds(
             url="https://github.com/faustomorales/keras-ocr/releases/download/v0.8.4/backgrounds.zip",
             sha256="f263ed0d55de303185cc0f93e9fcb0b13104d68ed71af7aaaa8e8c91389db471",
             filename="backgrounds.zip",
-            cache_dir=cache_dir,
-        )    
+            cache_dir=cache_dir,            
+        )        
     if len(glob.glob(os.path.join(backgrounds_dir, "*"))) != 1035:
         with zipfile.ZipFile(backgrounds_zip_path) as zfile:
             zfile.extractall(backgrounds_dir)
@@ -718,11 +718,14 @@ def get_image_generator(
             color=text_color,
             draw_contour=draw_contour_text,
         )
-        text_image = random_noise(text_image, mode='gaussian', mean=0.2)
+        
         alpha = text_image[..., -1:].astype("float32") / 255
         image = (alpha * text_image[..., :3] + (1 - alpha) * current_background).astype(
             "uint8"
         )
+        
+        image = random_noise(image, mode='gaussian', mean=0.2)
+        
         if draw_contour:
             image = cv2.drawContours(
                 image,
