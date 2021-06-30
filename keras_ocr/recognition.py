@@ -442,6 +442,8 @@ class Recognizer:
             sentences = [sample[1].strip() for sample in batch]
             if lowercase:
                 sentences = [sentence.lower() for sentence in sentences]
+            else:
+                sentences = [sentence.lower() for sentence in sentences]
             for c in "".join(sentences):
                 assert c in self.alphabet, "Found illegal character: {}".format(c)
             assert all(sentences), "Found a zero length sentence."
