@@ -439,7 +439,7 @@ class Recognizer:
             else:
                 images = [sample[0] for sample in batch]
             images = np.array([image.astype("float32") / 255 for image in images])
-            sentences2 = [sample[1].strip().upper() for sample in batch]
+            sentences = [sample[1].strip().upper() for sample in batch]
                         
             if lowercase:
                 sentences = [sentence.lower() for sentence in sentences]
