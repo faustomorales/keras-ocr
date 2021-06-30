@@ -597,6 +597,8 @@ def get_image_generator(
     augmenter=None,
     draw_contour=False,
     draw_contour_text=False,
+    noize_mean=0.25,
+    
 ):
     """Create a generator for images containing text.
 
@@ -724,7 +726,7 @@ def get_image_generator(
             "uint8"
         )
         
-        image = random_noise(image, mode='gaussian', mean=0.2)
+        image = random_noise(image, mode='gaussian', mean=noize_mean)
         
         if draw_contour:
             image = cv2.drawContours(
