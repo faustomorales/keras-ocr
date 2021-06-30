@@ -439,13 +439,15 @@ class Recognizer:
             else:
                 images = [sample[0] for sample in batch]
             images = np.array([image.astype("float32") / 255 for image in images])
-            sentences = [sample[1].strip() for sample in batch]
+            sentences2 = [sample[1].strip() for sample in batch]
+            sentences = [sample[1].upper() for sample in sentences2]
             
             if lowercase:
                 sentences = [sentence.lower() for sentence in sentences]
             else:
                 sentences = [sentence.upper() for sentence in sentences]
-                
+            
+        
             for c in "".join(sentences):
                 assert c in self.alphabet, "Found illegal character: {}".format(c)
             assert all(sentences), "Found a zero length sentence."
