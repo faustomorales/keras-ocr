@@ -434,7 +434,7 @@ class Recognizer:
             if not self.model.input_shape[-1] == 3:
                 images = [
                     cv2.cvtColor(sample[0], cv2.COLOR_RGB2GRAY)[..., np.newaxis]
-                    for sample in batch
+                    for sample in batch1
                 ]
             else:
                 images = [sample[0] for sample in batch]
