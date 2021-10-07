@@ -174,7 +174,7 @@ def drawAnnotations(image, predictions, ax=None):
             xy = box[0] / np.array([image.shape[1], image.shape[0]])
             xy[1] = 1 - xy[1]
             ax.annotate(
-                s=text,
+                text=text,
                 xy=xy,
                 xytext=(-0.05 if side == "left" else 1.05, y),
                 xycoords="axes fraction",
