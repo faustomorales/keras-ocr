@@ -45,7 +45,7 @@ def download_extract_and_process_dataset(data_path):
     if not os.path.isfile(archive_filepath) and not os.path.isdir(extraction_directory):
         print("Downloading the dataset.")
         urllib.request.urlretrieve(
-            "https://www.robots.ox.ac.uk/~vgg/data/text/mjsynth.tar.gz",
+            "https://thor.robots.ox.ac.uk/~vgg/data/text/mjsynth.tar.gz",
             archive_filepath,
         )
     if not os.path.isdir(extraction_directory):
