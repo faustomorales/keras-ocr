@@ -214,7 +214,7 @@ We use the same callbacks for early stopping and logging as before.
         validation_data=recognition_val_generator,
         validation_steps=math.ceil(len(background_splits[1]) / recognition_batch_size),
         workers=0,
-        bacth_size=recognition_batch_size
+        batch_size=recognition_batch_size
     )
 
 Use the models for inference
