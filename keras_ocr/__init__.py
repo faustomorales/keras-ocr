@@ -6,6 +6,7 @@ from . import (
     pipeline,
     evaluation,
     datasets,
+    config,
 )
 
 __version__ = "0.0.0"

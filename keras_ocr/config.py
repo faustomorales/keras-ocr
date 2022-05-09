@@ -14,6 +14,8 @@ def configure():
                     tf.config.experimental.set_memory_growth(gpu, True)
             except RuntimeError as e:
                 raise e
+        else:
+            print('Memory growth set but no GPUs detected')
 
     if memory_allocated and isinstance(memory_allocated, float):
         config = tf.compat.v1.ConfigProto()
