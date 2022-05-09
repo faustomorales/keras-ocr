@@ -28,7 +28,8 @@ import tensorflow as tf
 import efficientnet.tfkeras as efficientnet
 from tensorflow import keras
 
-from . import tools
+from . import tools, config
+config.configure()
 
 
 def compute_input(image):

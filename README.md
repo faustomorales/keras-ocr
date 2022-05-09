@@ -75,6 +75,11 @@ You may be wondering how the models in this package compare to existing cloud OC
 
 _Why not compare to Tesseract?_ In every configuration I tried, Tesseract did very poorly on this test. Tesseract performs best on scans of books, not on incidental scene text like that in this dataset.
 
+## Advanced Configuration
+By default if a GPU is available Tensorflow tries to grab almost all of the available video memory, and this sucks if you're running multiple models with Tensorflow and Pytorch. Setting any value for the environment variable `MEMORY_GROWTH` will force Tensorflow to dynamically allocate only as much GPU memory as is needed.
+
+You can also specify a limit per Tensorflow process by setting the environment variable `MEMORY_ALLOCATED` to any float, and this value is a float ratio of VRAM to the total amount present.
+
 ## Contributing
 
 To work on the project, start by doing the following. These instructions probably do not yet work for Windows but if a Windows user has some ideas for how to fix that it would be greatly appreciated (I don't have a Windows machine to test on at the moment).
