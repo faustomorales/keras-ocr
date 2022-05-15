@@ -28,13 +28,14 @@ def iou_score(box1, box2):
         x2, y2 = box2[1]
         box2 = np.array([[x1, y1], [x2, y1], [x2, y2], [x1, y2]])
     if any(
-        cv2.contourArea(np.int32(box)[:, np.newaxis, :]) == 0 for box in [box1, box2]
+        cv2.contourArea(np.array(box, dtype="int32")[:, np.newaxis, :]) == 0
+        for box in [box1, box2]
     ):
         warnings.warn("A box with zero area was detected.")
         return 0
     pc = pyclipper.Pyclipper()
-    pc.AddPath(np.int32(box1), pyclipper.PT_SUBJECT, closed=True)
-    pc.AddPath(np.int32(box2), pyclipper.PT_CLIP, closed=True)
+    pc.AddPath(np.array(box1, dtype="int32"), pyclipper.PT_SUBJECT, closed=True)
+    pc.AddPath(np.array(box2, dtype="int32"), pyclipper.PT_CLIP, closed=True)
     intersection_solutions = pc.Execute(
         pyclipper.CT_INTERSECTION, pyclipper.PFT_EVENODD, pyclipper.PFT_EVENODD
     )
@@ -42,11 +43,11 @@ def iou_score(box1, box2):
         pyclipper.CT_UNION, pyclipper.PFT_EVENODD, pyclipper.PFT_EVENODD
     )
     union = sum(
-        cv2.contourArea(np.int32(points)[:, np.newaxis, :])
+        cv2.contourArea(np.array(points, dtype="int32")[:, np.newaxis, :])
         for points in union_solutions
     )
     intersection = sum(
-        cv2.contourArea(np.int32(points)[:, np.newaxis, :])
+        cv2.contourArea(np.array(points, dtype="int32")[:, np.newaxis, :])
         for points in intersection_solutions
     )
     return intersection / union

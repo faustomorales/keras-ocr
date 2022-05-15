@@ -16,7 +16,7 @@ from shapely import geometry
 from scipy import spatial
 
 
-def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
+def read(filepath_or_buffer: typing.Union[str, io.BytesIO, np.ndarray]):
     """Read a file into an image object
 
     Args:
@@ -229,34 +229,13 @@ def drawBoxes(image, boxes, color=(255, 0, 0), thickness=5, boxes_format="boxes"
     return canvas
 
 
-@typing.overload
-def adjust_boxes(
-    boxes, scale=1, boxes_format: tx.Literal["lines"] = "lines"
-) -> typing.List[typing.Tuple[np.ndarray, str]]:
-    ...
-
-
-@typing.overload
-def adjust_boxes(
-    boxes, scale=1, boxes_format: tx.Literal["predictions"] = "predictions"
-) -> typing.List[typing.Tuple[str, np.ndarray]]:
-    ...
-
-
-@typing.overload
-def adjust_boxes(
-    boxes, scale=1, boxes_format: tx.Literal["boxes"] = "boxes"
-) -> np.ndarray:
-    ...
-
-
 def adjust_boxes(
     boxes,
     scale=1,
     boxes_format: tx.Literal["boxes", "predictions", "lines"] = "boxes",
 ) -> typing.Union[
     np.ndarray,
-    typing.List[typing.Tuple[np.ndarray, str]],
+    typing.List[typing.List[typing.Tuple[np.ndarray, str]]],
     typing.List[typing.Tuple[str, np.ndarray]],
 ]:
     """Adjust boxes using a given scale and offset.
@@ -320,13 +299,13 @@ def augment(
         image_augmented_shape = (height_augmented, width_augmented)
 
     def box_inside_image(box):
-        area_before = cv2.contourArea(np.int32(box)[:, np.newaxis, :])
+        area_before = cv2.contourArea(np.array(box, dtype="int32")[:, np.newaxis, :])
         if area_before == 0:
             return False, box
         clipped = box.copy()
         clipped[:, 0] = clipped[:, 0].clip(0, image_augmented_shape[1])
         clipped[:, 1] = clipped[:, 1].clip(0, image_augmented_shape[0])
-        area_after = cv2.contourArea(np.int32(clipped)[:, np.newaxis, :])
+        area_after = cv2.contourArea(np.array(clipped, dtype="int32")[:, np.newaxis, :])
         return ((area_after / area_before) >= area_threshold) and (
             min_area is None or area_after > min_area
         ), clipped

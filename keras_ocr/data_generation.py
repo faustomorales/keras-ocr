@@ -252,6 +252,7 @@ def get_fonts(
                 cache_dir=cache_dir,
             ),
             "r",
+            encoding="utf8",
         ) as f:
             smallcaps_fonts = f.read().split("\n")
             font_filepaths = [

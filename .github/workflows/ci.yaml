@@ -10,7 +10,7 @@ jobs:
     name: Automated checks
     strategy:
       matrix:
-        python-version: [3.6]
+        python-version: [3.7]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -19,6 +19,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Load environment cache
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: venv-${{ matrix.python-version }}-${{ runner.os }}-v2-${{ hashFiles('**/poetry.lock') }}
       - name: Make Host Environment
         run: |
           make init

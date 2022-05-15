@@ -55,9 +55,9 @@ def invert_input(X):
 def get_gaussian_heatmap(size=512, distanceRatio=3.34):
     v = np.abs(np.linspace(-size / 2, size / 2, num=size))
     x, y = np.meshgrid(v, v)
-    g = np.sqrt(x ** 2 + y ** 2)
+    g = np.sqrt(x**2 + y**2)
     g *= distanceRatio / (size / 2)
-    g = np.exp(-(1 / 2) * (g ** 2))
+    g = np.exp(-(1 / 2) * (g**2))
     g *= 255
     return g.clip(0, 255).astype("uint8")
 
@@ -473,21 +473,18 @@ def build_torch_model(weights_path=None):
     from collections import namedtuple, OrderedDict
 
     import torch
-    import torch.nn as nn
-    import torch.nn.init as init
-    import torch.nn.functional as F
-    from torchvision import models
+    import torchvision
 
     def init_weights(modules):
         for m in modules:
-            if isinstance(m, nn.Conv2d):
-                init.xavier_uniform_(m.weight.data)
+            if isinstance(m, torch.nn.Conv2d):
+                torch.nn.init.xavier_uniform_(m.weight.data)
                 if m.bias is not None:
                     m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm2d):
+            elif isinstance(m, torch.nn.BatchNorm2d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
+            elif isinstance(m, torch.nn.Linear):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
 
@@ -497,7 +494,9 @@ def build_torch_model(weights_path=None):
             # We don't bother loading the pretrained VGG
             # because we're going to use the weights
             # at weights_path.
-            vgg_pretrained_features = models.vgg16_bn(pretrained=False).features
+            vgg_pretrained_features = torchvision.models.vgg16_bn(
+                pretrained=False
+            ).features
             self.slice1 = torch.nn.Sequential()
             self.slice2 = torch.nn.Sequential()
             self.slice3 = torch.nn.Sequential()
@@ -514,9 +513,9 @@ def build_torch_model(weights_path=None):
 
             # fc6, fc7 without atrous conv
             self.slice5 = torch.nn.Sequential(
-                nn.MaxPool2d(kernel_size=3, stride=1, padding=1),
-                nn.Conv2d(512, 1024, kernel_size=3, padding=6, dilation=6),
-                nn.Conv2d(1024, 1024, kernel_size=1),
+                torch.nn.MaxPool2d(kernel_size=3, stride=1, padding=1),
+                torch.nn.Conv2d(512, 1024, kernel_size=3, padding=6, dilation=6),
+                torch.nn.Conv2d(1024, 1024, kernel_size=1),
             )
 
             if not pretrained:
@@ -548,23 +547,23 @@ def build_torch_model(weights_path=None):
             out = vgg_outputs(h_fc7, h_relu5_3, h_relu4_3, h_relu3_2, h_relu2_2)
             return out
 
-    class double_conv(nn.Module):
+    class double_conv(torch.nn.Module):
         def __init__(self, in_ch, mid_ch, out_ch):
             super().__init__()
-            self.conv = nn.Sequential(
-                nn.Conv2d(in_ch + mid_ch, mid_ch, kernel_size=1),
-                nn.BatchNorm2d(mid_ch),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(mid_ch, out_ch, kernel_size=3, padding=1),
-                nn.BatchNorm2d(out_ch),
-                nn.ReLU(inplace=True),
+            self.conv = torch.nn.Sequential(
+                torch.nn.Conv2d(in_ch + mid_ch, mid_ch, kernel_size=1),
+                torch.nn.BatchNorm2d(mid_ch),
+                torch.nn.ReLU(inplace=True),
+                torch.nn.Conv2d(mid_ch, out_ch, kernel_size=3, padding=1),
+                torch.nn.BatchNorm2d(out_ch),
+                torch.nn.ReLU(inplace=True),
             )
 
         def forward(self, x):  # pylint: disable=arguments-differ
             x = self.conv(x)
             return x
 
-    class CRAFT(nn.Module):
+    class CRAFT(torch.nn.Module):
         def __init__(self, pretrained=False, freeze=False):
             super().__init__()
             # Base network
@@ -576,16 +575,16 @@ def build_torch_model(weights_path=None):
             self.upconv4 = double_conv(128, 64, 32)
 
             num_class = 2
-            self.conv_cls = nn.Sequential(
-                nn.Conv2d(32, 32, kernel_size=3, padding=1),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(32, 32, kernel_size=3, padding=1),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(32, 16, kernel_size=3, padding=1),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(16, 16, kernel_size=1),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(16, num_class, kernel_size=1),
+            self.conv_cls = torch.nn.Sequential(
+                torch.nn.Conv2d(32, 32, kernel_size=3, padding=1),
+                torch.nn.ReLU(inplace=True),
+                torch.nn.Conv2d(32, 32, kernel_size=3, padding=1),
+                torch.nn.ReLU(inplace=True),
+                torch.nn.Conv2d(32, 16, kernel_size=3, padding=1),
+                torch.nn.ReLU(inplace=True),
+                torch.nn.Conv2d(16, 16, kernel_size=1),
+                torch.nn.ReLU(inplace=True),
+                torch.nn.Conv2d(16, num_class, kernel_size=1),
             )
 
             init_weights(self.upconv1.modules())
@@ -603,19 +602,19 @@ def build_torch_model(weights_path=None):
 
             y = self.upconv1(y)
 
-            y = F.interpolate(
+            y = torch.nn.functional.interpolate(
                 y, size=sources[2].size()[2:], mode="bilinear", align_corners=False
             )
             y = torch.cat([y, sources[2]], dim=1)
             y = self.upconv2(y)
 
-            y = F.interpolate(
+            y = torch.nn.functional.interpolate(
                 y, size=sources[3].size()[2:], mode="bilinear", align_corners=False
             )
             y = torch.cat([y, sources[3]], dim=1)
             y = self.upconv3(y)
 
-            y = F.interpolate(
+            y = torch.nn.functional.interpolate(
                 y, size=sources[4].size()[2:], mode="bilinear", align_corners=False
             )
             y = torch.cat([y, sources[4]], dim=1)

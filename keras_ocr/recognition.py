@@ -261,8 +261,8 @@ def build_model(
         .. [3]  https://github.com/EderSantana/seya/blob/keras1/seya/layers/attention.py
         """
         stn_input_output_shape = (
-            width // pool_size ** 2,
-            height // pool_size ** 2,
+            width // pool_size**2,
+            height // pool_size**2,
             filters[6],
         )
         stn_input_layer = keras.layers.Input(shape=stn_input_output_shape)
@@ -278,7 +278,7 @@ def build_model(
             6,
             weights=[
                 np.zeros((64, 6), dtype="float32"),
-                np.float32([[1, 0, 0], [0, 1, 0]]).flatten(),
+                np.array([[1, 0, 0], [0, 1, 0]], dtype="float32").flatten(),
             ],
         )(locnet_y)
         localization_net = keras.models.Model(inputs=stn_input_layer, outputs=locnet_y)
@@ -287,8 +287,8 @@ def build_model(
         )
     x = keras.layers.Reshape(
         target_shape=(
-            width // pool_size ** 2,
-            (height // pool_size ** 2) * filters[-1],
+            width // pool_size**2,
+            (height // pool_size**2) * filters[-1],
         ),
         name="reshape",
     )(x)
@@ -431,6 +431,7 @@ class Recognizer:
         max_string_length = self.training_model.input_shape[1][1]
         while True:
             batch = [sample for sample, _ in zip(image_generator, range(batch_size))]
+            images: typing.Union[typing.List[np.ndarray], np.ndarray]
             if not self.model.input_shape[-1] == 3:
                 images = [
                     cv2.cvtColor(sample[0], cv2.COLOR_RGB2GRAY)[..., np.newaxis]
@@ -443,7 +444,7 @@ class Recognizer:
             if lowercase:
                 sentences = [sentence.lower() for sentence in sentences]
             for c in "".join(sentences):
-                assert c in self.alphabet, "Found illegal character: {}".format(c)
+                assert c in self.alphabet, f"Found illegal character: {c}"
             assert all(sentences), "Found a zero length sentence."
             assert all(
                 len(sentence) <= max_string_length for sentence in sentences
@@ -526,7 +527,7 @@ class Recognizer:
             start_end.append((start, start + len(boxes)))
         if not crops:
             return [[]] * len(images)
-        X = np.float32(crops) / 255
+        X = np.array(crops, dtype="float32") / 255
         if len(X.shape) == 3:
             X = X[..., np.newaxis]
         predictions = [

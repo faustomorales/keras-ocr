@@ -256,7 +256,7 @@ def get_icdar_2013_detector_dataset(cache_dir=None, skip_illegible=False):
         image_id = os.path.split(gt_filepath)[1].split("_")[0]
         image_path = os.path.join(training_images_dir, image_id + ".jpg")
         lines = []
-        with open(gt_filepath, "r") as f:
+        with open(gt_filepath, "r", encoding="utf8") as f:
             current_line: typing.List[typing.Tuple[np.ndarray, str]] = []
             for raw_row in f.read().split("\n"):
                 if raw_row == "":
@@ -324,7 +324,7 @@ def get_icdar_2019_semisupervised_dataset(cache_dir=None):
         cache_dir=main_dir,
         filename="mlt2019_dataset.json",
     )
-    with open(ground_truth, "r") as f:
+    with open(ground_truth, "r", encoding="utf8") as f:
         character_level_dataset = json.loads(f.read())["dataset"]
     for gif_filepath in glob.glob(os.path.join(main_dir, "**", "*.gif")):
         # We need to do this because we cannot easily read GIFs.
@@ -447,7 +447,9 @@ def get_recognizer_image_generator(
         if index == 0 and shuffle:
             random.shuffle(labels)
         filepath, box, text = labels[index]
-        cval = cval = np.random.randint(low=0, high=255, size=3).astype("uint8")
+        cval = typing.cast(
+            int, np.random.randint(low=0, high=255, size=3).astype("uint8")
+        )
         if box is not None:
             image = tools.warpBox(
                 image=tools.read(filepath),

@@ -26,7 +26,7 @@ version = "0.0.0"
 
 # See https://python-poetry.org/docs/versions/ for allowed version specification formats
 [tool.poetry.dependencies]
-python = "^3.6"
+python = ">=3.7.5,<3.10"
 validators = "*"
 essential_generators = "*"
 tqdm = "*"
@@ -41,16 +41,13 @@ efficientnet = "1.0.0"
 black = "*"
 coverage = {version = "*", extras = ["toml"]}
 mypy = "*"
-pytest = "^6.1"
+pytest = "*"
 pylint = "*"
 pytest-cov = "*"
-tensorflow = [
-    { version = '2.4.2', platform = 'linux' },  # Installing TensorFlow on MacOS and Windows varies too much.
-]
-tensorflow-addons = "0.13.0"
+tensorflow = "^2.0.0"
 opencv-python = "*"
-types-requests = "^0.1.12"
-types-pkg-resources = "^0.1.3"
+types-requests = "*"
+types-pkg-resources = "*"
 
 
 [tool.poetry-dynamic-versioning]
