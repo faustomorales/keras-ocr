@@ -80,6 +80,8 @@ By default if a GPU is available Tensorflow tries to grab almost all of the avai
 
 You can also specify a limit per Tensorflow process by setting the environment variable `MEMORY_ALLOCATED` to any float, and this value is a float ratio of VRAM to the total amount present.
 
+To apply these changes, call `keras_ocr.config.configure()` at the top of your file where you import `keras_ocr`.
+
 ## Contributing
 
 To work on the project, start by doing the following. These instructions probably do not yet work for Windows but if a Windows user has some ideas for how to fix that it would be greatly appreciated (I don't have a Windows machine to test on at the moment).
