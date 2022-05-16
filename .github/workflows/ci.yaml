@@ -10,7 +10,7 @@ jobs:
     name: Automated checks
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.8]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
