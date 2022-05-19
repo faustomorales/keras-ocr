@@ -255,6 +255,7 @@ def get_fonts(
             encoding="utf8",
         ) as f:
             smallcaps_fonts = f.read().split("\n")
+            smallcaps_fonts = [ origpath.replace('/', os.path.sep) for origpath in smallcaps_fonts ]
             font_filepaths = [
                 filepath
                 for filepath in font_filepaths
