@@ -438,7 +438,7 @@ def draw_text_image(
         while not all(
             cv2.pointPolygonTest(contour=transformed_contour, pt=pt, measureDist=False)
             >= 0
-            for pt in [(x, y), (x2, y), (x2, y2), (x, y2)]
+            for pt in [(int(x), int(y)), (int(x2), int(y)), (int(x2), int(y2)), (int(x), int(y2))]
         ):
             if x2 > end_x:
                 dy = max(1, max_y - y)
@@ -533,7 +533,7 @@ def compute_transformed_contour(width, height, fontsize, M, contour, minarea=0.5
     inside = (
         np.array(
             [
-                cv2.pointPolygonTest(contour=contour, pt=(x, y), measureDist=False) >= 0
+                cv2.pointPolygonTest(contour=contour, pt=(int(x), int(y)), measureDist=False) >= 0
                 for x, y in slots
             ]
         )
@@ -568,7 +568,7 @@ def compute_transformed_contour(width, height, fontsize, M, contour, minarea=0.5
         next(
             index
             for index, contour in enumerate(newContours)
-            if cv2.pointPolygonTest(contour=contour, pt=(x, y), measureDist=False) >= 0
+            if cv2.pointPolygonTest(contour=contour, pt=(int(x), int(y)), measureDist=False) >= 0
         )
     ][:, 0, :]
     return contour
